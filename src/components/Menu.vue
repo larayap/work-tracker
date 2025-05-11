@@ -29,7 +29,7 @@
       </div>
     </div> -->
     <div id="contenedorComponentes">
-      <draggable v-model="applied" item-key="id" animation="200">
+      <draggable v-model="applied" item-key="id" animation="200" chosen-class="drag-chosen" ghost-class="drag-ghost">
         <template #item="{ element }">
           <div class="componente">
             <!-- usa element.id para elegir el componente -->
@@ -126,5 +126,11 @@ export default {
 }
 .cronometroAplicacion {
   position: relative;
+}
+.drag-chosen {
+  opacity: 1 !important;
+}
+.drag-ghost {
+  opacity: 0 !important;
 }
 </style>

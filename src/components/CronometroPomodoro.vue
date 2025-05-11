@@ -3,7 +3,8 @@
     <h1 class="title-pomodoro">Pomodoro</h1>
     <!-- Sesiones: arrastrables -->
     <div class="session-list">
-      <draggable class="session-content" v-model="sessions" item-key="id" animation="200">
+      <draggable class="session-content" v-model="sessions"
+        item-key="id" animation="200" chosen-class="drag-chosen" ghost-class="drag-ghost">
         <template #item="{ element, index }">
           <div class="session-item" :class="{ editing: editingIndex === index }">
             <button class="remove-btn" @click.stop="removeSession(index)">—</button>
@@ -30,7 +31,7 @@
       </button>
       <!-- <button @click="start" :disabled="running">Iniciar</button>
       <button @click="pause" :disabled="!running">Pausar</button> -->
-      <button @click="reset"> 
+      <button @click="reset">
         <font-awesome-icon :icon="'rotate-left'" />
       </button>
       <button @click="cancel">
@@ -144,7 +145,7 @@ export default {
   },
   beforeUnmount() {
     clearInterval(this.timer)
-  }
+  },
 }
 </script>
 
@@ -175,6 +176,7 @@ export default {
 .session-item {
   position: relative;
   border: 1px solid #9b9999;
+  background-color: black;
   color: #fff;
   padding: 10px 20px;
   cursor: grab;
@@ -240,5 +242,17 @@ export default {
   font-size: 1.5rem;
   color: #f0f0f0;
   transition: transform 0.2s ease-in-out;
+}
+
+.drag-chosen {
+  opacity: 0.1 !important;
+}
+
+.draggable-mirror {
+  opacity: 0.1 !important;
+}
+.drag-ghost {
+  opacity: 0 !important;
+  background-color: aquamarine;
 }
 </style>
