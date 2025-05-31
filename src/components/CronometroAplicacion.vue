@@ -1,6 +1,6 @@
 <template>
   <div class="cronometro">
-    <div style="display: flex;">
+    <div class="header-wrapper">
       <button class="button-history" @click="openHistoryWindow()" title="Ver historial">
         <font-awesome-icon icon="bars" />
       </button>
@@ -243,8 +243,11 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-}
 
+}
+.header-wrapper {
+  display: flex;
+}
 .app-icon-inline {
   width: 32px;
   height: 32px;
@@ -255,14 +258,13 @@ export default {
 .app-icon-inline img {
   width: 100%;
   height: 100%;
-  border-radius: 10px;
 }
 
 .display {
   display: inline;
   font-size: 2rem;
   width: 8ch;
-  margin: 0.8rem 2.3rem;
+  margin: 0;
   user-select: none;
 }
 

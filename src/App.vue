@@ -1,7 +1,25 @@
 <template>
   <div id="allContainer">
-    <TitleBar />
-    <Menu />
+    <div class="titlebar-wrapper">
+      <TitleBar 
+        :show-manual="showManual"
+        :show-aplicacion="showAplicacion"
+        :show-pomodoro="showPomodoro"
+        @toggle-manual="showManual = $event"
+        @toggle-aplicacion="showAplicacion = $event"
+        @toggle-pomodoro="showPomodoro = $event"
+      />
+    </div>
+    <div class="menu-scrollable">
+      <Menu 
+      :show-manual="showManual"
+      :show-aplicacion="showAplicacion"
+      :show-pomodoro="showPomodoro"
+      @toggle-manual="showManual = $event"
+      @toggle-aplicacion="showAplicacion = $event"
+      @toggle-pomodoro="showPomodoro = $event"
+      />
+    </div>
   </div>
 </template>
 
@@ -14,7 +32,14 @@ export default {
   components: {
     Menu,
     TitleBar,
-  }
+  },
+  data() {
+    return {
+      showManual: false,
+      showAplicacion: false,
+      showPomodoro: false,
+    }
+  },
 }
 </script>
 
@@ -35,5 +60,26 @@ html, body {
   color: #e7e7e7;
 
 }
+#allContainer {
+  /* 100vh hace que #allContainer ocupe el 100% de la altura de la ventana de la app */
+  height: 100vh;
+
+  /* Flex column: TitleBar arriba (no scroll), Menu abajo (scroll) */
+  display: flex;
+  flex-direction: column;
+}
+
+
+.menu-scrollable {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+}
+
+.menu-scrollable::-webkit-scrollbar {
+  width: 0px;
+}
+
 
 </style>

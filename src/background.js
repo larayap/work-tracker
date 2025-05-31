@@ -25,11 +25,10 @@ let alwaysOnTopInterval = null // Intervalo para alwaysOnTop
 function createTray() {
   // Ruta del ícono para la bandeja
   const iconPath = path.join(__dirname, '../public/img/icon-work.png')
-  console.log('Tray icon path:', iconPath)
   tray = new Tray(iconPath)
 
   // Tooltip que aparece al pasar el ratón sobre el ícono
-  tray.setToolTip('Mi Aplicación en la Bandeja')
+  tray.setToolTip('Workout')
 
   // Menú contextual al hacer clic derecho en el ícono
   const contextMenu = Menu.buildFromTemplate([
@@ -59,7 +58,9 @@ async function createWindow() {
   // Create the browser window.
   mainWindow  = new BrowserWindow({
     width: 500,
-    height: 250,
+    height: 330,
+    title: 'Workout',
+    icon: path.join(__dirname, '../public/img/icon-work.png'),
     backgroundColor: '#0f0f0f', // Cambia este valor por el color que desees
     frame: false,
     show: false,
@@ -266,6 +267,40 @@ ipcMain.handle('get-app-logs', async () => {
     const [date] = datetime.split(' ')
     return { date, app, duration, startTime, endTime }
   }).filter(Boolean)
+})
+
+const sessionsFile = path.join(app.getPath('userData'), 'pomodoro-sessions.json')
+
+// handler para leer
+ipcMain.handle('load-sessions', async () => {
+  try {
+    const raw = await fs.promises.readFile(sessionsFile, 'utf8')
+
+    // 1) parseamos la primera vez
+    let parsed = JSON.parse(raw)
+
+    // 2) si resulta ser todavía una cadena, parseamos otra vez
+    if (typeof parsed === 'string') {
+      parsed = JSON.parse(parsed)
+    }
+
+    return parsed
+  } catch (err) {
+    if (err.code !== 'ENOENT') console.error('Error leyendo sesiones:', err)
+    return null
+  }
+})
+
+// listener para guardar
+ipcMain.on('save-sessions', (event, plainArray) => {
+  fs.writeFile(
+    sessionsFile,
+    JSON.stringify(plainArray, null, 2),
+    'utf8',
+    err => {
+      if (err) console.error('Error saving sessions:', err)
+    }
+  )
 })
 
 // Quit when all windows are closed.

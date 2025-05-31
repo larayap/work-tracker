@@ -1,12 +1,25 @@
 <template>
   <div class="pomodoro-dynamic">
+    <audio ref="endSesion" :src="endSesion" preload="auto"></audio>
+    <audio ref="deleteItem" :src="deleteItem" preload="auto"></audio>
+    <audio ref="popUp" :src="popUp" preload="auto"></audio>
+    <audio ref="pressButton" :src="pressButton" preload="auto"></audio>
+    <audio ref="add" :src="add" preload="auto"></audio>
+
     <h1 class="title-pomodoro">Pomodoro</h1>
     <!-- Sesiones: arrastrables -->
     <div class="session-list">
-      <draggable class="session-content" v-model="sessions"
-        item-key="id" animation="200" chosen-class="drag-chosen" ghost-class="drag-ghost">
+      <draggable 
+        class="session-content" 
+        v-model="sessions"
+        item-key="id" 
+        animation="200" 
+        chosen-class="drag-chosen" 
+        ghost-class="drag-ghost" 
+        @end="onSessionReorder"
+      >
         <template #item="{ element, index }">
-          <div class="session-item" :class="{ editing: editingIndex === index }">
+          <div class="session-item" :class="{ editing: editingIndex === index }" :style="getFillStyle(index)">
             <button class="remove-btn" @click.stop="removeSession(index)">—</button>
             <span v-if="editingIndex !== index" class="item" @click="startEditing(index)">
               {{ formatTimeMin(element.time) }}
@@ -49,23 +62,58 @@ import { faPlay, faPause, faSquare, faRotateLeft, faX } from '@fortawesome/free-
 import { library } from '@fortawesome/fontawesome-svg-core'
 library.add(faPlay, faPause, faSquare, faRotateLeft, faX)
 
+const endSesion = require('@/sounds/endSesion.mp3')
+const deleteItem = require('@/sounds/deleteItem.mp3')
+const popUp = require('@/sounds/popUp.mp3')
+const pressButton = require('@/sounds/pressButton.mp3')
+const add = require('@/sounds/add.mp3')
+
+const { ipcRenderer } = window.require('electron')
+
 export default {
   name: 'DynamicPomodoro',
   components: { draggable, FontAwesomeIcon },
   data() {
     return {
-      sessions: [
-        { id: Date.now(), time: 60 },
-        { id: Date.now() + 1, time: 120 },
-        { id: Date.now() + 2, time: 180 },
-        { id: Date.now() + 3, time: 60 }
-      ],
+      sessions: [],
       running: false,
       currentIndex: 0,
-      currentTime: 0,
+      currentTime: 60,
       timer: null,
       editingIndex: null,
-      editValue: null
+      editValue: null,
+      endSesion: endSesion,
+      deleteItem: deleteItem,
+      popUp: popUp,
+      pressButton: pressButton,
+      add: add,
+    }
+  },
+  async created() {
+    const saved = await ipcRenderer.invoke('load-sessions')
+    if (Array.isArray(saved)) {
+      this.sessions = saved
+    } else {
+      // si no había archivo (o devolvió null), usamos tu array por defecto
+      this.sessions = [
+        { id: Date.now(),     time: 60 },
+        { id: Date.now() + 1, time: 60 },
+        { id: Date.now() + 2, time: 60 },
+      ]
+      // y lo salvamos para que el main cree el archivo
+      ipcRenderer.send('save-sessions',
+        this.sessions.map(s => ({ id: s.id, time: s.time }))
+      )
+    }
+    // inicializamos currentTime para el primer bloque
+    this.currentTime = this.sessions[0]?.time || 0
+  },
+  computed: {
+    // porcentaje [0..1] de cuánto ha avanzado la sesión actual
+    currentProgress() {
+      const sess = this.sessions[this.currentIndex]
+      if (!sess) return 0
+      return (sess.time - this.currentTime) / sess.time
     }
   },
   methods: {
@@ -74,6 +122,30 @@ export default {
       const s = (seconds % 60).toString().padStart(2, '0')
       return `${m}:${s}`
     },
+    playSound(refName) {
+      // clona la etiqueta <audio> y la dispara
+      const snd = this.$refs[refName].cloneNode()
+      snd.play().catch(()=>{})
+    },
+    onSessionReorder() {
+      this.playSound('popUp')
+    },
+    getFillStyle(index) {
+      // completadas → relleno 100%
+      
+      if (index < this.currentIndex) {
+        return { backgroundColor: '#d3d3d3' }
+      }
+      // en curso → degradado según progreso
+      if (index === this.currentIndex) {
+        const p = Math.min(Math.max(this.currentProgress, 0), 1) * 100
+        return {
+          background: `linear-gradient(to right, #d3d3d3 ${p}%, black ${p}%)`
+        }
+      }
+      // futuras → sin relleno extra
+      return {}
+    },
     formatTimeMin(seconds) {
       const m = seconds / 60;
       return m % 1 === 0
@@ -81,9 +153,11 @@ export default {
         : m.toFixed(1)
     },
     addDefaultSession() {
+      this.playSound('add')
       this.sessions.push({ id: Date.now(), time: 5 * 60 })
     },
     removeSession(index) {
+      this.playSound('deleteItem')
       if (this.sessions[index]) {
         this.sessions.splice(index, 1)
       }
@@ -93,8 +167,12 @@ export default {
       this.editValue = Math.floor(this.sessions[index].time / 60)
     },
     stopEditing() {
+      const newTime = this.editValue * 60
       if (this.editValue > 0) {
-        this.sessions[this.editingIndex].time = this.editValue * 60
+        this.sessions[this.editingIndex].time = newTime
+      }
+      if (this.editingIndex === this.currentIndex) {
+        this.currentTime = newTime
       }
       this.editingIndex = null
       this.editValue = null
@@ -104,26 +182,33 @@ export default {
     },
     start() {
       if (!this.sessions.length) return
-      this.running = true
+      if (this.currentTime <= 0) {
+      // caso “primera vez” o tras cancel()
       this.currentIndex = 0
       this.currentTime = this.sessions[0].time
-      this.timer = setInterval(this.tick, 1000)
+    }
+    this.playSound('pressButton')
+    this.running = true
+    this.timer = setInterval(this.tick, 1000)
     },
     pause() {
       clearInterval(this.timer)
+      this.playSound('pressButton')
       this.running = false
     },
     reset() {
       clearInterval(this.timer)
+      this.playSound('pressButton')
       this.running = true
       this.currentTime = this.sessions[this.currentIndex]?.time || 0
       this.timer = setInterval(this.tick, 1000)
     },
     cancel() {
       clearInterval(this.timer)
+      this.playSound('pressButton')
       this.running = false
-      this.currentTime = 0
       this.currentIndex = 0
+      this.currentTime = this.sessions[this.currentIndex]?.time || 0
     },
     tick() {
       if (this.currentTime > 0) {
@@ -133,13 +218,25 @@ export default {
       }
     },
     nextSession() {
+      this.playSound('endSesion')
       clearInterval(this.timer)
       if (this.currentIndex < this.sessions.length - 1) {
         this.currentIndex++
         this.currentTime = this.sessions[this.currentIndex].time
         this.timer = setInterval(this.tick, 1000)
       } else {
+        this.playSound('endSesion')
         this.running = false
+      }
+    }
+  },
+  watch: {
+    // cuando cambie cualquier cosa en sessions, lo grabo
+    sessions: {
+      deep: true,
+      handler(newList) {
+        const plainArray = newList.map(s => ({ id: s.id, time: s.time }))
+        ipcRenderer.send('save-sessions', plainArray)
       }
     }
   },
@@ -185,10 +282,6 @@ export default {
   letter-spacing: 0.1em;
 }
 
-.session-item:active {
-  cursor: grabbing;
-}
-
 .remove-btn {
   position: absolute;
   top: 0;
@@ -228,9 +321,22 @@ export default {
 
 .edit-input {
   width: 40px;
-  text-align: center;
+  height: 30px;
+  position: relative;
+  border: 1px solid #9b9999;
+  background-color: black;
+  color: #fff;
+  font-size: 1.2em;
+  font-weight: bold;
   border: none;
-  border-radius: 3px;
+  outline: none;
+  font-family: "Architects Daughter", cursive;
+}
+
+.edit-input::-webkit-outer-spin-button,
+.edit-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .controls button {
@@ -253,6 +359,5 @@ export default {
 }
 .drag-ghost {
   opacity: 0 !important;
-  background-color: aquamarine;
 }
 </style>
