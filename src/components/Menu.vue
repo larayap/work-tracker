@@ -1,35 +1,34 @@
 <template>
   <div id="menuContainer" class="Menu">
-    <h1 v-if="showMenu">Menú cronometros</h1>
-    <div v-if="showMenu" id="menu">
-      <label>
-        <input type="checkbox" v-model="selected" :value="1">
-        Manual
-      </label>
-      <label>
-        <input type="checkbox" v-model="selected" :value="2">
-        Aplicación
-      </label>
-      <label>
-        <input type="checkbox" v-model="selected" :value="3">
-        Pomodoro
-      </label>
-      <button @click="aplicarSeleccion">Aplicar</button>
+    <audio ref="popUp" :src="popUp" preload="auto"></audio>
+    <div v-if="showMenu" class="menu-container">
+      <h1 class="menu-title">Inicio</h1>
+      <h2>Apps para usar:</h2>
+      <div class="menu-options">
+        <div
+          v-for="opt in options"
+          :key="opt.value"
+          class="option-card"
+          :class="{ selected: appStore.selected.includes(opt.value) }"
+          @click="toggleOption(opt.value)"
+        >
+          <span class="option-label">{{ opt.label }}</span>
+        </div>
+      </div>
+      <button class="apply-btn" @click="aplicarSeleccion">
+        <font-awesome-icon :icon="['far', 'circle-check']" />
+      </button>
     </div>
-
-    <!-- <div id="contenedorComponentes">
-      <div v-if="applied.includes(1)" id="componente1" class="componente">
-        <CronometroManual />
-      </div>
-      <div v-if="applied.includes(2)" id="componente2" class="componente cronometroAplicacion">
-        <CronometroAplicacion />
-      </div>
-      <div v-if="applied.includes(3)" id="componente3" class="componente">
-        <CronometroPomodoro />
-      </div>
-    </div> -->
-    <div id="contenedorComponentes">
-      <draggable v-model="applied" item-key="id" animation="200" chosen-class="drag-chosen" ghost-class="drag-ghost">
+    <div  v-if="!showMenu" id="contenedorComponentes">
+      <draggable 
+        v-model="applied" 
+        item-key="id" 
+        animation="200" 
+        -class="drag-chosen" 
+        ghost-class="drag-ghost" 
+        @change="handleDragChange"
+        class="draggable-container"
+      >
         <template #item="{ element }">
           <div class="componente">
             <!-- usa element.id para elegir el componente -->
@@ -44,11 +43,19 @@
 
 <script>
 import draggable from 'vuedraggable';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { faCircleCheck } from '@fortawesome/free-regular-svg-icons'
+import { library } from '@fortawesome/fontawesome-svg-core'
+import { useAppStore  }  from '@/stores/menu'
 import CronometroManual from './CronometroManual.vue';
 import CronometroAplicacion from './CronometroAplicacion.vue';
 import CronometroPomodoro from './CronometroPomodoro.vue';
 
+library.add(faCircleCheck)
+
 const { remote } = require('electron')
+
+const popUp = require('@/sounds/popUp.mp3')
 
 export default {
   name: 'HelloWorld',
@@ -56,30 +63,77 @@ export default {
     CronometroManual,
     CronometroAplicacion,
     CronometroPomodoro,
-    draggable
+    draggable,
+    FontAwesomeIcon
   },
   data() {
     return {
-      selected: [], // Almacena la selección actual de los checkboxes
       applied: [],   // Almacena la selección aplicada al pulsar "Aplicar"
-      showMenu: true
+      showMenu: true,
+       options: [
+        { value: 1, label: 'M' },
+        { value: 2, label: 'A' },
+        { value: 3, label: 'P' },
+      ],
+      appStore: useAppStore(),
+      popUp: popUp,
+    }
+  },
+  created() {
+    this.applied = this.appStore.selected.map(id => ({ id }))
+  },
+  watch: {
+    'appStore.selected'(nuevo) {
+      this.applied = this.applied.filter(item => nuevo.includes(item.id))
+      nuevo.forEach(id => {
+        if (!this.applied.find(x => x.id === id)) {
+          this.applied.push({ id })
+        }
+      })
+      this.resizeWindow()
     }
   },
   methods: {
+    toggleOption(val) {
+       this.appStore.toggleOption(val)
+    },
+     handleDragChange() {
+      const audio = this.$refs.popUp;
+      if (audio) {
+        // Reproduce desde el inicio
+        audio.currentTime = 0;
+        audio.play().catch(e => {
+          console.warn('No se pudo reproducir el audio:', e);
+        });
+      }
+    },
     aplicarSeleccion() {
-      // Copia la selección actual a la variable "applied"
-      this.applied = this.selected.map(n => ({ id: n }));
+      this.applied = this.appStore.selected.map(n => ({ id: n }))
       this.showMenu = false
 
       // Espera a que se renderice el contenido y mide sus dimensiones
-      this.$nextTick(() => {
-        const content = document.getElementById('allContainer')
-        if (content) {
-          let contentWidth = content.offsetWidth
-          let contentHeight = content.offsetHeight
-          remote.getCurrentWindow().setContentSize(contentWidth, contentHeight)
-        }
-      })
+       this.$nextTick(() => {
+        // 1) Mide la altura de tu TitleBar fija:
+        const titleBarEl = document.querySelector('.titlebar-wrapper');
+        const tituloAlto = titleBarEl ? titleBarEl.offsetHeight : 0;
+
+        // 2) Mide TODO el contenido del menú (incluso lo que despertaría scroll):
+        const menuEl = document.getElementById('menuContainer'); 
+        if (!menuEl) return;
+
+        // IMPORTANTE: scrollHeight = contenido total (visible + oculto por scroll)
+        const menuTotalAlto = menuEl.scrollHeight;
+        const menuTotalAncho = menuEl.scrollWidth;
+
+        // 3) Altura total necesaria = altura del TitleBar + altura total del menú
+        const altoDeseado = tituloAlto + menuTotalAlto;
+        // 4) Ancho deseado (puede ser el mayor entre menuTotalAncho y el ancho de la TitleBar):
+        const anchoDeseado = Math.max(menuTotalAncho, titleBarEl.offsetWidth);
+
+        console.log('Ancho deseado:', anchoDeseado, 'Alto deseado:', altoDeseado);
+
+        remote.getCurrentWindow().setContentSize(anchoDeseado, altoDeseado);
+      });
     },
     getComponent(id) {
       switch (id) {
@@ -92,37 +146,105 @@ export default {
         default:
           return null;
       }
-    }
+    },
+    resizeWindow() {
+      this.$nextTick(() => {
+        // 1) Mide la altura de tu TitleBar fija:
+        const titleBarEl = document.querySelector('.titlebar-wrapper');
+        const tituloAlto = titleBarEl ? titleBarEl.offsetHeight : 0;
+
+        // 2) Mide TODO el contenido del menú (incluso lo que despertaría scroll):
+        const menuEl = document.getElementById('menuContainer'); 
+        if (!menuEl) return;
+
+        // IMPORTANTE: scrollHeight = contenido total (visible + oculto por scroll)
+        const menuTotalAlto = menuEl.scrollHeight;
+        const menuTotalAncho = menuEl.scrollWidth;
+
+        // 3) Altura total necesaria = altura del TitleBar + altura total del menú
+        const altoDeseado = tituloAlto + menuTotalAlto;
+        // 4) Ancho deseado (puede ser el mayor entre menuTotalAncho y el ancho de la TitleBar):
+        const anchoDeseado = Math.max(menuTotalAncho, titleBarEl.offsetWidth);
+
+        console.log('Ancho deseado:', anchoDeseado, 'Alto deseado:', altoDeseado);
+
+        remote.getCurrentWindow().setContentSize(anchoDeseado, altoDeseado);
+      });
+    },
   }
 }
 </script>
 
 <style scoped>
+.menu-container {
+  max-width: 280px;
+  margin: auto;
+  padding: 1rem;
 
-#menu {
+}
+.menu-title {
+  font-size: 2.2em;
+}
+.menu-options {
   display: flex;
-  flex-direction: column;
-  align-items: center; /* Centra el conjunto de opciones en el contenedor */
-  gap: 10px;
-  margin-bottom: 20px;
-  width: 100%; /* Puedes ajustar este valor según necesites */
+  gap: 0.5rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
 }
-#menu label {
-  display: block;
-  width: 120px; /* Ancho fijo para que todas empiecen en la misma posición */
-  text-align: left;
+
+.option-card {
+  flex: 1;
+  padding: 0.75rem 0;
+  font-size: 2em;
+  text-align: center;
+  border: 2px solid #e0e0e0;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
-#menu button {
-  margin-top: 10px;
+
+.option-card:hover {
+  border-color: #999;
+  color: #999;
+}
+
+.option-card.selected {
+  background: #6f6f6f;
+  color: white;
+}
+
+.apply-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 2.2em;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.apply-btn:hover {
+  color: #999;
+}
+h1 {
+  margin: 0;
+}
+h2 {
+  margin: 0 0 20px 0;
+}
+
+#menuContainer {
+  padding: 10px 0 0 0; 
 }
 .componente {
   border: 1px solid #ccc;
-  margin: 10px 0;
+  margin: 0;
   padding: 5px;
   cursor: grab;
+  scroll-snap-align: start;
 }
-.componente:active {
-  cursor: grabbing;
+.draggable-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .cronometroAplicacion {
   position: relative;

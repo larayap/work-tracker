@@ -1,10 +1,32 @@
 <!-- eslint-disable vue/no-multiple-template-root -->
 <template>
   <div id="custom-titlebar">
-    <div class="setting-control">
-      <button @click="ajustar">
-        <font-awesome-icon :icon="['fas', 'gear']" />
-      </button>
+      <audio ref="add" :src="add" preload="auto"></audio>
+      <audio ref="deleteItem" :src="deleteItem" preload="auto"></audio>
+     <div class="toggle-squares">
+      <div
+        class="option-card"
+        :class="{ selected: appStore.manual }"
+        @click="toggleManual"
+      >
+        <img src="@/assets/manual.png" alt="Manual" class="option-icon" />
+      </div>
+      <div
+        class="option-card"
+        :class="{ selected: appStore.aplicacion }"
+        @click="toggleAplicacion"
+      >
+        <!-- <img src="@/assets/manual.png" alt="Manual" class="option-icon" /> -->
+        W
+      </div>
+      <div
+        class="option-card"
+        :class="{ selected: appStore.pomodoro }"
+        @click="togglePomodoro"
+      >
+        <!-- <img src="@/assets/manual.png" alt="Manual" class="option-icon" /> -->
+        P
+      </div>
     </div>
     <div class="window-controls">
       <button v-if="!pinned" @click="togglePin">
@@ -51,10 +73,15 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { faWindowMinimize, faWindowMaximize, faWindowRestore, faX, faGear, faThumbtack, faThumbtackSlash } from '@fortawesome/free-solid-svg-icons'
 import { faRectangleXmark, faSquare } from '@fortawesome/free-regular-svg-icons'
+import { useAppStore } from '@/stores/menu'
 
 library.add(faWindowMinimize, faWindowMaximize, faWindowRestore, faRectangleXmark, faX, faSquare, faGear, faThumbtack, faThumbtackSlash)
 
 const { remote, ipcRenderer } = require('electron')
+
+
+const add = require('@/sounds/add.mp3')
+const deleteItem = require('@/sounds/deleteItem.mp3')
 
 export default {
   name: 'TitleBar',
@@ -65,7 +92,10 @@ export default {
       pinned: false,
       openWindows: [],
       showAppList: false,
-      selectedIndex: 0
+      selectedIndex: 0,
+      appStore: useAppStore(),
+      add: add,
+      deleteItem: deleteItem,
     }
   },
   mounted() {
@@ -74,8 +104,10 @@ export default {
     win.on('unmaximize', () => { this.maximizado = false })
   },
   methods: {
-    minimizar() {
-      remote.getCurrentWindow().minimize()
+    playSound(refName) {
+      // clona la etiqueta <audio> y la dispara
+      const snd = this.$refs[refName].cloneNode()
+      snd.play().catch(()=>{})
     },
     maximizarToggle() {
       const win = remote.getCurrentWindow()
@@ -84,9 +116,19 @@ export default {
     cerrar() {
       remote.getCurrentWindow().close()
     },
-    ajustar() {
-      console.log('ajustar')
+    toggleManual() {
+      this.appStore.toggleOption(1)
+      this.appStore.manual ? this.playSound('add') : this.playSound('deleteItem')
     },
+    toggleAplicacion() {
+      this.appStore.toggleOption(2)
+      this.appStore.aplicacion ? this.playSound('add') : this.playSound('deleteItem')
+    },
+    togglePomodoro() {
+      this.appStore.toggleOption(3)
+      this.appStore.pomodoro ? this.playSound('add') : this.playSound('deleteItem')
+    },
+
     togglePin() {
       if (this.pinned) {
         ipcRenderer.send('stop-monitoring-active-window')
@@ -153,6 +195,7 @@ export default {
   color: #fff;
   -webkit-app-region: drag;
   padding: 5px 10px;
+  border-bottom: white 1px solid;
 }
 .window-controls button,
 .setting-control button {
@@ -162,11 +205,50 @@ export default {
   color: #fff;
   cursor: pointer;
   font-size: 16px;
-  margin-left: 10px;
 }
 .window-controls button:hover,
 .setting-control button:hover {
   background-color: rgba(255, 255, 255, 0.2);
+}
+
+.toggle-squares,
+.option-card {
+  -webkit-app-region: no-drag;
+}
+
+
+.toggle-squares {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.option-card {
+  flex: 1;
+  padding: 2px;
+  width: 24px;
+  height: 24px;
+  font-size: 1em;      /* quizá ajustes un poco el tamaño */
+  text-align: center;
+  border: 2px solid #e0e0e0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 0;      /* asegura esquinas cuadradas */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+
+  /* Quita cualquier outline por foco */
+  outline: none;
+}
+.option-card:hover {
+  border-color: #999;
+  color: #999;
+}
+
+.option-card.selected {
+  background: #6f6f6f;
+  color: white;
 }
 
 /* Estilos para el modal */
@@ -221,5 +303,10 @@ export default {
 }
 .close-btn:hover {
   background: #333;
+}
+.option-icon {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain; /* mantiene la proporción */
 }
 </style>
