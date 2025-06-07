@@ -196,6 +196,7 @@ export default {
   -webkit-app-region: drag;
   padding: 5px 10px;
   border-bottom: white 1px solid;
+  white-space: nowrap;
 }
 .window-controls button,
 .setting-control button {
@@ -205,6 +206,7 @@ export default {
   color: #fff;
   cursor: pointer;
   font-size: 16px;
+  white-space: nowrap;
 }
 .window-controls button:hover,
 .setting-control button:hover {
