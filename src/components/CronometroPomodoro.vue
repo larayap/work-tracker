@@ -8,7 +8,7 @@
 
     <h1 class="title-pomodoro">Pomodoro</h1>
     <!-- Sesiones: arrastrables -->
-    <div class="session-list">
+    <div class="session-list" ref="sessionList">
       <draggable 
         class="session-content" 
         v-model="sessions"
@@ -89,6 +89,11 @@ export default {
       add: add,
     }
   },
+  mounted() {
+    const el = this.$refs.sessionList
+    // passive: false para poder preventDefault()
+    el.addEventListener('wheel', this.onWheel, { passive: false })
+  },
   async created() {
     const saved = await ipcRenderer.invoke('load-sessions')
     if (Array.isArray(saved)) {
@@ -117,6 +122,10 @@ export default {
     }
   },
   methods: {
+    onWheel(e) {
+      e.preventDefault()               // evitamos el scroll vertical
+      this.$refs.sessionList.scrollLeft += e.deltaY * 0.4
+    },
     formatTime(seconds) {
       const m = Math.floor(seconds / 60).toString().padStart(2, '0')
       const s = (seconds % 60).toString().padStart(2, '0')
@@ -242,6 +251,7 @@ export default {
   },
   beforeUnmount() {
     clearInterval(this.timer)
+    this.$refs.sessionList.removeEventListener('wheel', this.onWheel)
   },
 }
 </script>
@@ -258,15 +268,15 @@ export default {
 }
 
 .session-list {
-  display: flex;
-  flex-direction: row;
-  gap: 10px;
-  justify-content: center;
+  overflow-x: auto;       /* activa scroll horizontal */
+  white-space: nowrap;     /* evita que baje a la siguiente línea */
+  text-align: center;      /* centra su contenido inline */
+  padding: 10px 0;         /* espacio arriba/abajo (opcional) */
+  -webkit-overflow-scrolling: touch; /* suaviza scroll en iOS/macOS */
 }
 
 .session-content {
-  display: flex;
-  flex-direction: row;
+  display: inline-flex;
   gap: 10px;
 }
 
@@ -280,8 +290,18 @@ export default {
   font-size: 1.6em;
   font-weight: bold;
   letter-spacing: 0.1em;
+  flex: 0 0 auto;
+  display: inline-block; 
 }
-
+.add-btn {
+  margin-left: 10px;
+}
+.session-list::-webkit-scrollbar {
+  height: 0;
+}
+.session-list::-webkit-scrollbar-thumb {
+  background: rgba(233, 233, 233, 0.3);
+}
 .remove-btn {
   position: absolute;
   top: 0;
