@@ -205,14 +205,14 @@ export default {
       }
     },
     nextSession() {
-      this.$playSound('endSesion')
+      this.$playSound('endSession')
       clearInterval(this.timer)
       if (this.currentIndex < this.sessions.length - 1) {
         this.currentIndex++
         this.currentTime = this.sessions[this.currentIndex].time
         this.timer = setInterval(this.tick, 1000)
       } else {
-        this.$playSound('endSesion')
+        this.$playSound('endSession')
         this.running = false
       }
     }
