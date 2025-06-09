@@ -1,6 +1,5 @@
 <template>
   <div id="menuContainer" class="Menu">
-    <audio ref="popUp" :src="popUp" preload="auto"></audio>
     <div v-if="showMenu" class="menu-container">
       <h1 class="menu-title">Inicio</h1>
       <h2>Apps para usar:</h2>
@@ -55,8 +54,6 @@ library.add(faCircleCheck)
 
 const { remote } = require('electron')
 
-const popUp = require('@/sounds/popUp.mp3')
-
 export default {
   name: 'HelloWorld',
   components: {
@@ -76,7 +73,6 @@ export default {
         { value: 3, label: 'P' },
       ],
       appStore: useAppStore(),
-      popUp: popUp,
     }
   },
   created() {
@@ -95,19 +91,14 @@ export default {
   },
   methods: {
     toggleOption(val) {
+      this.$playSound('pressButton')
        this.appStore.toggleOption(val)
     },
-     handleDragChange() {
-      const audio = this.$refs.popUp;
-      if (audio) {
-        // Reproduce desde el inicio
-        audio.currentTime = 0;
-        audio.play().catch(e => {
-          console.warn('No se pudo reproducir el audio:', e);
-        });
-      }
+    handleDragChange() {
+      this.$playSound('popUp')
     },
     aplicarSeleccion() {
+      this.$playSound('pressButton')
       this.applied = this.appStore.selected.map(n => ({ id: n }))
       this.showMenu = false
 

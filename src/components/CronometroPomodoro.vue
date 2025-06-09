@@ -1,11 +1,5 @@
 <template>
   <div class="pomodoro-dynamic">
-    <audio ref="endSesion" :src="endSesion" preload="auto"></audio>
-    <audio ref="deleteItem" :src="deleteItem" preload="auto"></audio>
-    <audio ref="popUp" :src="popUp" preload="auto"></audio>
-    <audio ref="pressButton" :src="pressButton" preload="auto"></audio>
-    <audio ref="add" :src="add" preload="auto"></audio>
-
     <h1 class="title-pomodoro">Pomodoro</h1>
     <!-- Sesiones: arrastrables -->
     <div class="session-list" ref="sessionList">
@@ -62,12 +56,6 @@ import { faPlay, faPause, faSquare, faRotateLeft, faX } from '@fortawesome/free-
 import { library } from '@fortawesome/fontawesome-svg-core'
 library.add(faPlay, faPause, faSquare, faRotateLeft, faX)
 
-const endSesion = require('@/sounds/endSesion.mp3')
-const deleteItem = require('@/sounds/deleteItem.mp3')
-const popUp = require('@/sounds/popUp.mp3')
-const pressButton = require('@/sounds/pressButton.mp3')
-const add = require('@/sounds/add.mp3')
-
 const { ipcRenderer } = window.require('electron')
 
 export default {
@@ -82,11 +70,6 @@ export default {
       timer: null,
       editingIndex: null,
       editValue: null,
-      endSesion: endSesion,
-      deleteItem: deleteItem,
-      popUp: popUp,
-      pressButton: pressButton,
-      add: add,
     }
   },
   mounted() {
@@ -131,13 +114,8 @@ export default {
       const s = (seconds % 60).toString().padStart(2, '0')
       return `${m}:${s}`
     },
-    playSound(refName) {
-      // clona la etiqueta <audio> y la dispara
-      const snd = this.$refs[refName].cloneNode()
-      snd.play().catch(()=>{})
-    },
     onSessionReorder() {
-      this.playSound('popUp')
+      this.$playSound('popUp')
     },
     getFillStyle(index) {
       // completadas → relleno 100%
@@ -162,11 +140,11 @@ export default {
         : m.toFixed(1)
     },
     addDefaultSession() {
-      this.playSound('add')
+      this.$playSound('add')
       this.sessions.push({ id: Date.now(), time: 5 * 60 })
     },
     removeSession(index) {
-      this.playSound('deleteItem')
+      this.$playSound('deleteItem')
       if (this.sessions[index]) {
         this.sessions.splice(index, 1)
       }
@@ -196,25 +174,25 @@ export default {
       this.currentIndex = 0
       this.currentTime = this.sessions[0].time
     }
-    this.playSound('pressButton')
+    this.$playSound('pressButton')
     this.running = true
     this.timer = setInterval(this.tick, 1000)
     },
     pause() {
       clearInterval(this.timer)
-      this.playSound('pressButton')
+      this.$playSound('pressButton')
       this.running = false
     },
     reset() {
       clearInterval(this.timer)
-      this.playSound('pressButton')
+      this.$playSound('pressButton')
       this.running = true
       this.currentTime = this.sessions[this.currentIndex]?.time || 0
       this.timer = setInterval(this.tick, 1000)
     },
     cancel() {
       clearInterval(this.timer)
-      this.playSound('pressButton')
+      this.$playSound('pressButton')
       this.running = false
       this.currentIndex = 0
       this.currentTime = this.sessions[this.currentIndex]?.time || 0
@@ -227,14 +205,14 @@ export default {
       }
     },
     nextSession() {
-      this.playSound('endSesion')
+      this.$playSound('endSesion')
       clearInterval(this.timer)
       if (this.currentIndex < this.sessions.length - 1) {
         this.currentIndex++
         this.currentTime = this.sessions[this.currentIndex].time
         this.timer = setInterval(this.tick, 1000)
       } else {
-        this.playSound('endSesion')
+        this.$playSound('endSesion')
         this.running = false
       }
     }

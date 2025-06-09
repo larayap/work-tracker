@@ -25,22 +25,30 @@ module.exports = {
   },
   pluginOptions: {
     electronBuilder: {
-      removeBuildField: true, // Esto elimina el campo "build" del package.json final
+      removeBuildField: true,
       builderOptions: {
         appId: 'com.tuapp.cronometroapps',
-        productName: 'Cronómetro Apps',
+        productName: 'Workout',
+        publish: [
+          {
+            provider: 'github',
+            owner: 'larayap',
+            repo: 'cronometro-app'
+          }
+        ],
         win: {
           target: 'nsis',
-          // icon: 'build/icons/icon.ico'
+          icon: 'public/icon-work-256.png',
+          executableName: 'Workout'
         },
-        mac: {
+     /*    mac: {
           target: 'dmg',
           // icon: 'build/icons/icon.icns'
         },
         linux: {
           target: 'AppImage',
           // icon: 'build/icons'
-        },
+        }, */
         nsis: {
           oneClick: false,
           perMachine: false,

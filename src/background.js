@@ -24,7 +24,8 @@ let alwaysOnTopInterval = null // Intervalo para alwaysOnTop
 
 function createTray() {
   // Ruta del ícono para la bandeja
-  const iconPath = path.join(__dirname, '../public/img/icon-work.png')
+
+  const iconPath = path.join(__static, 'img', 'icon-work.png')
   tray = new Tray(iconPath)
 
   // Tooltip que aparece al pasar el ratón sobre el ícono
@@ -60,7 +61,7 @@ async function createWindow() {
     width: 500,
     height: 330,
     title: 'Workout',
-    icon: path.join(__dirname, '../public/img/icon-work.png'),
+    icon: path.join(__static, 'img', 'icon-work.png'),
     backgroundColor: '#0f0f0f', // Cambia este valor por el color que desees
     frame: false,
     show: false,
@@ -235,7 +236,8 @@ ipcMain.on('open-history-window', () => {
     historyWindow.loadURL(`${process.env.WEBPACK_DEV_SERVER_URL}history.html`)
     // historyWindow.webContents.openDevTools()
   } else {
-    historyWindow.loadFile(path.join(__dirname, 'dist_electron/history.html'))
+    createProtocol('app')  // ya lo deberías tener en tu createWindow()
+    historyWindow.loadURL('app://./history.html')
   }
 })
 

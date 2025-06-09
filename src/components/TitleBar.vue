@@ -1,8 +1,6 @@
 <!-- eslint-disable vue/no-multiple-template-root -->
 <template>
   <div id="custom-titlebar">
-      <audio ref="add" :src="add" preload="auto"></audio>
-      <audio ref="deleteItem" :src="deleteItem" preload="auto"></audio>
      <div class="toggle-squares">
       <div
         class="option-card"
@@ -79,10 +77,6 @@ library.add(faWindowMinimize, faWindowMaximize, faWindowRestore, faRectangleXmar
 
 const { remote, ipcRenderer } = require('electron')
 
-
-const add = require('@/sounds/add.mp3')
-const deleteItem = require('@/sounds/deleteItem.mp3')
-
 export default {
   name: 'TitleBar',
   components: { FontAwesomeIcon },
@@ -94,8 +88,6 @@ export default {
       showAppList: false,
       selectedIndex: 0,
       appStore: useAppStore(),
-      add: add,
-      deleteItem: deleteItem,
     }
   },
   mounted() {
@@ -104,11 +96,6 @@ export default {
     win.on('unmaximize', () => { this.maximizado = false })
   },
   methods: {
-    playSound(refName) {
-      // clona la etiqueta <audio> y la dispara
-      const snd = this.$refs[refName].cloneNode()
-      snd.play().catch(()=>{})
-    },
     maximizarToggle() {
       const win = remote.getCurrentWindow()
       win.isMaximized() ? win.unmaximize() : win.maximize()
@@ -118,15 +105,15 @@ export default {
     },
     toggleManual() {
       this.appStore.toggleOption(1)
-      this.appStore.manual ? this.playSound('add') : this.playSound('deleteItem')
+      this.appStore.manual ? this.$playSound('add') : this.$playSound('deleteItem')
     },
     toggleAplicacion() {
       this.appStore.toggleOption(2)
-      this.appStore.aplicacion ? this.playSound('add') : this.playSound('deleteItem')
+      this.appStore.aplicacion ? this.$playSound('add') : this.$playSound('deleteItem')
     },
     togglePomodoro() {
       this.appStore.toggleOption(3)
-      this.appStore.pomodoro ? this.playSound('add') : this.playSound('deleteItem')
+      this.appStore.pomodoro ? this.$playSound('add') : this.$playSound('deleteItem')
     },
 
     togglePin() {

@@ -1,6 +1,5 @@
 <template>
     <div class="cronometro">
-      <audio ref="pressButton" :src="pressButton" preload="auto"></audio>
       <h1 style="margin: 0;">Manual</h1>
       <div class="display">{{ formattedTime }}</div>
       <div class="controls">
@@ -20,8 +19,6 @@
   import { library } from '@fortawesome/fontawesome-svg-core'
 
   library.add(faPlay, faPause, faSquare)
-
-  const pressButton = require('@/sounds/pressButton.mp3')
   
   export default {
     name: 'CronometroComponent',
@@ -30,7 +27,6 @@
         time: 0,          // Tiempo en milisegundos
         intervalId: null, // ID del intervalo
         running: false,    // Indica si está corriendo
-        pressButton: pressButton,
       }
     },
     components: { FontAwesomeIcon },
@@ -53,7 +49,7 @@
         snd.play().catch(()=>{})
       },
       start() {
-        this.playSound('pressButton')
+        this.$playSound('pressButton')
         if (!this.running) {
           this.running = true
           const startTime = Date.now() - this.time
@@ -63,12 +59,12 @@
         }
       },
       pause() {
-        this.playSound('pressButton')
+        this.$playSound('pressButton')
         this.running = false
         clearInterval(this.intervalId)
       },
       reset() {
-        this.playSound('pressButton')
+        this.$playSound('pressButton')
         this.running = false
         clearInterval(this.intervalId)
         this.time = 0

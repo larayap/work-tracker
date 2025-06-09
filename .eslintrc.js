@@ -3,6 +3,9 @@ module.exports = {
   env: {
     node: true,
   },
+  "globals": {
+    "__static": "readonly"
+  },
   parser: 'vue-eslint-parser',
   parserOptions: {
     requireConfigFile: false,
