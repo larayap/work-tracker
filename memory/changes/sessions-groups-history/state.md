@@ -4,9 +4,10 @@ change_name: "sessions-groups-history"
 domain: "feature"
 status: active
 fast_path: "full"
-current_phase: sdd-verify
-phases_completed: [sdd-init, sdd-explore, sdd-propose, sdd-spec, sdd-design, sdd-tasks, sdd-apply]
-spec_refs: ["[[row-lifecycle-persistence-by-type]]", "[[sessions-json-persistence]]", "[[installed-apps-data-integrity]]", "[[deselect-from-saved-selection]]", "[[selection-type-manual-vs-auto]]", "[[inline-session-naming]]", "[[group-composition-and-drag]]", "[[selector-listing-icons]]", "[[session-view]]", "[[usage-chart-by-interval]]"]
+current_phase: sdd-judgment
+judgment_iteration: 1
+phases_completed: [sdd-init, sdd-explore, sdd-propose, sdd-spec, sdd-design, sdd-tasks, sdd-apply, sdd-verify, sdd-judgment, sdd-apply]
+spec_refs: ["[[row-lifecycle-persistence-by-type]]", "[[sessions-json-persistence]]", "[[installed-apps-data-integrity]]", "[[deselect-from-saved-selection]]", "[[selection-type-manual-vs-auto]]", "[[inline-session-naming]]", "[[group-composition-and-drag]]", "[[selector-listing-icons]]", "[[session-view]]", "[[usage-chart-by-interval]]", "[[judgment-fixes-sessions-groups-history]]"]
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/sessions-groups-history"
 feature_branch: "feature/sessions-groups-history"
 integration_target: "main"
