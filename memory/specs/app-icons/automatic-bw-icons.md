@@ -21,7 +21,7 @@ acceptance_criteria:
   - "Ningún ícono se carga manualmente ni depende de que el nombre del programa coincida con un archivo del proyecto"
   - "Un programa sin ícono útil muestra la imagen de respaldo en vez de un espacio en blanco o roto"
 related: []
-affects: []
+affects: ["[[selector-listing-icons]]"]
 adrs: ["[[0005-native-icon-extraction-css-grayscale]]"]
 scope: ["src/background.js", "src/components/CronometroAplicacion.vue", "src/assets"]
 verified_at: "2026-08-01"

@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: modified
 supersedes: "[[installed-apps-listing-quality]]"
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: high
 depends_on: []
@@ -27,7 +27,7 @@ related: ["[[saved-selection-only-monitoring]]", "[[row-lifecycle-persistence-by
 affects: ["[[selector-listing-icons]]", "[[deselect-from-saved-selection]]"]
 adrs: ["[[0003-start-menu-installed-apps-enumeration]]", "[[0004-os-dependent-code-single-module]]"]
 scope: ["src/main/installed-apps.js", "src/main/installed-apps-filter.js", "src/main/platform-windows.js"]
-verified_at: null
+verified_at: "2026-08-02"
 created: "2026-08-02"
 updated: "2026-08-02"
 tags: [capability-spec]

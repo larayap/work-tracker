@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: added
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: medium
 depends_on: ["[[sessions-json-persistence]]"]
@@ -26,7 +26,7 @@ related: ["[[group-composition-and-drag]]"]
 affects: ["[[group-composition-and-drag]]", "[[session-view]]"]
 adrs: []
 scope: ["src/components/AppRow.vue", "src/stores/monitoredApps.js", "src/main/session-log.js"]
-verified_at: null
+verified_at: "2026-08-02"
 created: "2026-08-02"
 updated: "2026-08-02"
 tags: [capability-spec]
@@ -96,18 +96,28 @@ nombre ya no cambia
 
 ## Acceptance Criteria
 
-Implementación completa (commit 7b81610). Los criterios de interacción click/teclado y el de
-persistencia al cerrar requieren la app corriendo en Windows — ver `observations.md`.
+Implementación completa (commit 7b81610). Los criterios de interacción click/teclado sobre
+el DOM real requieren la app corriendo en Windows — ver `observations.md`. `sdd-verify`
+verificó a nivel de motor (sin DOM) la multiplicidad de renombres y el congelamiento al
+cerrar, que son el comportamiento que esa interacción termina invocando.
 
 - [x] Agregar un programa nunca muestra ningún pedido de nombre de sesión. (`addApp`/`choose`
   no tienen ningún paso de nombre; `sessionName` nace `null` en toda fila creada)
 - [ ] El usuario puede poner nombre a una sesión abierta haciendo click en su etiqueta,
-  escribiendo el nombre y confirmando con Enter.
-- [ ] Cancelar con Esc deja el nombre exactamente como estaba antes de editar.
-- [ ] El nombre de una sesión se puede cambiar cuantas veces se quiera mientras esté
-  abierta.
-- [ ] El historial registra el nombre que la sesión tenía en el instante de cerrarse, sin
-  cambios posteriores.
+  escribiendo el nombre y confirmando con Enter. (el gesto de click/teclado sobre
+  `AppRow.vue` requiere DOM real; `monitoredApps.renameSession` que ese gesto invoca está
+  verificado, ver criterio siguiente)
+- [ ] Cancelar con Esc deja el nombre exactamente como estaba antes de editar. (estructural
+  por lectura: `cancelEdit` solo pone `editing = false`, sin llamar `renameSession` — el
+  gesto de teclado en sí requiere DOM real)
+- [x] El nombre de una sesión se puede cambiar cuantas veces se quiera mientras esté
+  abierta. (verificado en `sdd-verify`: tres llamadas sucesivas a
+  `monitorEngine.renameSession(appId, …)` sobre la misma fila abierta dejan el último valor
+  ("Nombre final") reflejado en el snapshot en memoria)
+- [x] El historial registra el nombre que la sesión tenía en el instante de cerrarse, sin
+  cambios posteriores. (verificado en `sdd-verify`: tras `closeRow`, `sessions.json` queda
+  con el último nombre asignado; una llamada a `renameSession` posterior al cierre —la fila
+  ya no existe en `rows`— es un no-op comprobado que no altera la entrada ya escrita)
 - [x] Una sesión sin nombre se comporta de forma idéntica al comportamiento anterior a esta
   funcionalidad. (`displayName` es `row.sessionName || row.name`, idéntico a `{{ row.name }}`
   cuando `sessionName` es `null`)

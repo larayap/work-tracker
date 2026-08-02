@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: modified
 supersedes: "[[row-lifecycle]]"
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: critical
 depends_on: ["[[selection-type-manual-vs-auto]]"]
@@ -27,7 +27,7 @@ related: ["[[two-state-row-machine]]", "[[saved-selection-only-monitoring]]", "[
 affects: ["[[sessions-json-persistence]]", "[[simultaneous-limit]]", "[[empty-state]]", "[[automatic-bw-icons]]"]
 adrs: ["[[0001-two-signal-monitoring-engine]]", "[[0002-main-process-owns-monitoring-state]]"]
 scope: ["src/main/monitor-engine.js", "src/main/ipc-handlers.js", "src/main/json-store.js"]
-verified_at: null
+verified_at: "2026-08-02"
 created: "2026-08-02"
 updated: "2026-08-02"
 tags: [capability-spec]
@@ -140,8 +140,10 @@ selección guardada
 ## Acceptance Criteria
 
 Implementación completa (commit 70565f9). Verificado con `node -e` contra entradas
-fabricadas (ver commit y `observations.md`); "perder el foco" y la equivalencia end-to-end
-■/cierre de proceso con la app real requieren Windows corriendo y quedan sin marcar.
+fabricadas (ver commit y `observations.md`); re-verificado en `sdd-verify` con nuevos
+escenarios fabricados sobre el código real (`reduceLifecycle`, `closeRow`, `reduceFocus`). La
+equivalencia end-to-end ■/cierre de proceso contra un proceso Windows real (no fabricado)
+requiere la app corriendo y queda sin marcar.
 
 - [x] Agregar un programa a la selección lo muestra de inmediato como fila en el listado
   visible. (comportamiento preexistente de `addToSelection`, sin cambios de contrato en este
@@ -156,11 +158,15 @@ fabricadas (ver commit y `observations.md`); "perder el foco" y la equivalencia 
   su proceso se abre. (verificado: `reduceLifecycle` con fila `auto` y PID muerto deja la
   entrada en `selection`, misma referencia)
 - [x] Un programa manual que salió del listado visible por cualquiera de esos dos eventos
-  deja de estar en la selección guardada. (verificado: `reduceLifecycle` con la carrera
-  fabricada — PID muerto y evidencia de vida en el mismo tick — descarta la entrada manual;
-  `closeRow` la descarta también por lectura de código, no ejercitable sin `app.getPath` real)
-- [ ] Perder el foco, por sí solo, nunca saca una fila del listado visible. (comportamiento de
-  `reduceFocus`, sin cambios de este cambio — no se re-verificó explícitamente en esta fase)
+  deja de estar en la selección guardada. (verificado en `sdd-verify` con `app.getPath`
+  mockeado y `monitorEngine.closeRow` real: una fila manual y una automática se agregan vía
+  `addToSelection`, se cierran ambas con `closeRow`, y solo la manual sale de `selection`
+  —tanto en el snapshot en memoria como en `monitored-selection.json` persistido—, mientras
+  ambas quedan registradas en `sessions.json`)
+- [x] Perder el foco, por sí solo, nunca saca una fila del listado visible. (verificado en
+  `sdd-verify`: `reduceFocus(null, rows, now)` sobre dos filas devuelve un array de la misma
+  longitud, todas transicionadas a `paused` sin que ninguna se remueva — `reduceFocus` nunca
+  filtra el array, solo mapea `state`)
 - [x] Un programa automático puede estar en la selección guardada sin tener fila visible en
   ningún momento dado. (comportamiento preexistente de `reduceLifecycle`, sin cambios)
 

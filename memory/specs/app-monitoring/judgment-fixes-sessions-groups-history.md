@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: added
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: critical
 depends_on: ["[[sessions-json-persistence]]", "[[usage-chart-by-interval]]", "[[installed-apps-data-integrity]]"]

@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: added
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: low
 depends_on: ["[[automatic-bw-icons]]", "[[installed-apps-data-integrity]]"]
@@ -24,7 +24,7 @@ related: ["[[installed-apps-data-integrity]]", "[[automatic-bw-icons]]"]
 affects: []
 adrs: ["[[0005-native-icon-extraction-css-grayscale]]"]
 scope: ["src/components/AppSelectorModal.vue", "src/main/icon-cache.js"]
-verified_at: null
+verified_at: "2026-08-02"
 created: "2026-08-02"
 updated: "2026-08-02"
 tags: [capability-spec]

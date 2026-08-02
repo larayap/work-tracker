@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: modified
 supersedes: "[[session-log-persistence]]"
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: critical
 depends_on: []
@@ -27,7 +27,7 @@ related: ["[[row-lifecycle-persistence-by-type]]"]
 affects: ["[[inline-session-naming]]", "[[group-composition-and-drag]]", "[[session-view]]", "[[usage-chart-by-interval]]"]
 adrs: ["[[0002-main-process-owns-monitoring-state]]", "[[0006-userdata-json-persistence]]"]
 scope: ["src/main/session-log.js", "src/background.js", "src/main/json-store.js"]
-verified_at: null
+verified_at: "2026-08-02"
 created: "2026-08-02"
 updated: "2026-08-02"
 tags: [capability-spec]
@@ -137,31 +137,46 @@ grupo
 
 ## Acceptance Criteria
 
-Implementación completa (commit 7b81610). Solo se marcan los criterios con verificación
-directa en esta fase (`node -e` o lectura estructural sin ambigüedad); los que dependen del
-camino de escritura real (`tick()`/`closeRow`/`closeAllRows` → `appendSessions` →
-`fs.writeFileSync`) requieren la app corriendo en Windows y quedan documentados en
+Implementación completa (commit 7b81610). Los criterios con verificación directa en esta
+fase (`node -e` contra el código real, o lectura estructural sin ambigüedad) quedan marcados;
+`sdd-verify` extendió la cobertura con `monitorEngine.closeRow`/`closeAllRows`/`renameSession`
+reales (`app.getPath` mockeado, disco real bajo el scratchpad, nunca `userData`). Solo el
+camino disparado por `tick()` sobre un proceso que muere de verdad (enumeración PID vía
+`tasklist`/`active-win`) requiere la app corriendo en Windows y queda documentado en
 `observations.md` (etapa 4).
 
 - [x] El reloj de una fila muestra el tiempo transcurrido desde que esa fila apareció,
   nunca el acumulado del día. (comportamiento preexistente de `reduceFocus`/`elapsedMs`, sin
   cambios de este cambio)
 - [ ] Cerrar el proceso de un programa monitoreado registra en el historial una entrada con
-  la duración de esa aparición.
-- [ ] Detener una fila registra en el historial una entrada con la duración de esa
-  aparición.
-- [ ] Cerrar la aplicación con filas abiertas registra en el historial una entrada por cada
-  una, con su duración hasta ese instante.
+  la duración de esa aparición. (la composición `reduceLifecycle.closed` →
+  `sessionLog.appendSession` está verificada por partes —`reduceLifecycle` produce `closed`
+  correctamente, `appendSession`/`appendSessions` escriben correctamente— pero el camino
+  completo disparado por `tick()` sobre un PID que muere de verdad no se ejercitó de punta a
+  punta en este entorno: requiere enumeración de procesos reales)
+- [x] Detener una fila registra en el historial una entrada con la duración de esa
+  aparición. (verificado en `sdd-verify`: `monitorEngine.closeRow` real sobre dos filas
+  —manual y automática— deja `sessions.json` con una entrada por cada una)
+- [x] Cerrar la aplicación con filas abiertas registra en el historial una entrada por cada
+  una, con su duración hasta ese instante. (verificado en `sdd-verify`: `closeAllRows`
+  real sobre 3 filas abiertas deja `sessions.json` con 3 entradas, escritas en una sola
+  llamada a `jsonStore.writeJson`, y `rows` queda en 0)
 - [x] Perder el foco, sin cerrar el proceso ni detener la fila, no registra ninguna entrada
   en el historial. (estructural: `reduceFocus` no invoca `appendSession`/`appendSessions` en
   ningún camino, solo transiciona `state`)
-- [ ] Un programa usado en varios tramos durante el mismo día produce una entrada de
-  historial por tramo.
+- [x] Un programa usado en varios tramos durante el mismo día produce una entrada de
+  historial por tramo. (verificado en `sdd-verify`: abrir y cerrar el mismo `appId` dos veces
+  seguidas —`addToSelection` → `closeRow` → `addToSelection` → `closeRow`— deja dos entradas
+  en `sessions.json` con `id` distinto)
 - [x] El historial anterior en texto plano se migra automáticamente al nuevo formato la
   primera vez que arranca la aplicación, sin pérdida de datos y sin borrar el archivo
   original. (verificado exhaustivamente: protocolo completo, idempotencia, corte a medio
-  camino, contra la copia real de 32 líneas)
-- [ ] Una entrada de historial de una sesión nombrada y agrupada conserva ambos datos.
+  camino, contra la copia real de 32 líneas; re-verificado en `sdd-verify`)
+- [x] Una entrada de historial de una sesión nombrada y agrupada conserva ambos datos.
+  (verificado en `sdd-verify`: `renameSession` + `setRowGroup` + `renameGroup` sobre dos
+  filas, cerradas con `closeRow`, dejan cada entrada de `sessions.json` con su propio
+  `sessionName`/`groupId`/`groupName` — sin fusionarse, la fila sin nombre propio queda con
+  `sessionName: null` y el `groupId`/`groupName` del grupo)
 
 ## Related
 

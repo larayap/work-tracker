@@ -2,11 +2,11 @@
 type: change-state
 change_name: "sessions-groups-history"
 domain: "feature"
-status: active
+status: completed
 fast_path: "full"
-current_phase: sdd-archive
+current_phase: ""
 judgment_iteration: 2
-phases_completed: [sdd-init, sdd-explore, sdd-propose, sdd-spec, sdd-design, sdd-tasks, sdd-apply, sdd-verify, sdd-judgment, sdd-apply, sdd-judgment]
+phases_completed: [sdd-init, sdd-explore, sdd-propose, sdd-spec, sdd-design, sdd-tasks, sdd-apply, sdd-verify, sdd-judgment, sdd-apply, sdd-judgment, sdd-archive]
 spec_refs: ["[[row-lifecycle-persistence-by-type]]", "[[sessions-json-persistence]]", "[[installed-apps-data-integrity]]", "[[deselect-from-saved-selection]]", "[[selection-type-manual-vs-auto]]", "[[inline-session-naming]]", "[[group-composition-and-drag]]", "[[selector-listing-icons]]", "[[session-view]]", "[[usage-chart-by-interval]]", "[[judgment-fixes-sessions-groups-history]]"]
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/sessions-groups-history"
 feature_branch: "feature/sessions-groups-history"

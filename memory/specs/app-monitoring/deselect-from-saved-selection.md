@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: added
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: high
 depends_on: ["[[row-lifecycle-persistence-by-type]]"]
@@ -25,7 +25,7 @@ related: ["[[installed-apps-data-integrity]]", "[[selection-type-manual-vs-auto]
 affects: ["[[sessions-json-persistence]]"]
 adrs: []
 scope: ["src/components/AppSelectorModal.vue", "src/main/ipc-handlers.js"]
-verified_at: null
+verified_at: "2026-08-02"
 created: "2026-08-02"
 updated: "2026-08-02"
 tags: [capability-spec]

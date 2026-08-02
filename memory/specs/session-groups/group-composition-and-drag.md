@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: added
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: medium
 depends_on: ["[[sessions-json-persistence]]", "[[inline-session-naming]]"]
@@ -26,7 +26,7 @@ related: ["[[simultaneous-limit]]", "[[inline-session-naming]]"]
 affects: ["[[session-view]]"]
 adrs: []
 scope: ["src/components/CronometroAplicacion.vue", "src/components/AppRow.vue", "src/stores/monitoredApps.js", "src/main/session-log.js"]
-verified_at: null
+verified_at: "2026-08-02"
 created: "2026-08-02"
 updated: "2026-08-02"
 tags: [capability-spec]
@@ -129,7 +129,11 @@ sí requiere mouse real sobre un DOM renderizado y no es verificable en este ent
   filas en el período consultado. (`BySessionView.vue`, etapa 6a, muestra `block.durationMs`
   de `buildDayTimeline` — la suma de sus miembros, nunca reloj de pared — verificado
   exhaustivamente desde la Tarea 11)
-- [ ] Sacar una fila de un grupo la devuelve al listado suelto.
+- [x] Sacar una fila de un grupo la devuelve al listado suelto. (verificado en `sdd-verify`
+  a nivel de motor: `monitorEngine.setRowGroup(appId, null)` sobre una fila de un grupo de 2
+  limpia su `groupId`/`groupName` sin afectar a la fila hermana, que conserva ambos. El gesto
+  de arrastre en sí —`vuedraggable` traduciendo el `@change` a esta misma llamada— requiere
+  mouse real y queda sin marcar)
 - [x] Un grupo sin ninguna fila miembro deja de mostrarse como grupo. (estructural: la
   existencia del grupo se deriva de `dragGrouped.length > 0`, no hay entidad persistida que
   limpiar — ADR-0008)
