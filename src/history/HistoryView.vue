@@ -12,116 +12,112 @@
       @dayclick="handleDateClick"
     />
 
-    <table class="log-table">
-      <thead>
-        <tr>
-          <th>Tiempo</th>
-          <th>App</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(log, i) in filteredLogs" :key="i">
-          <td>{{ log.duration }}</td>
-          <td>{{ log.app }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <UsageChart :entries="chartEntries" :label="chartLabel" />
+
+    <div class="view-tabs">
+      <button :class="{ active: activeView === 'byApp' }" @click="activeView = 'byApp'">
+        Por app
+      </button>
+      <button :class="{ active: activeView === 'bySession' }" @click="activeView = 'bySession'">
+        Por sesión
+      </button>
+    </div>
+
+    <ByAppView v-if="activeView === 'byApp'" :entries="dayEntries" />
+    <BySessionView v-else :entries="dayEntries" />
   </div>
 </template>
 
 <script>
 import TitleBar from './TitleBar.vue'
+import UsageChart from './UsageChart.vue'
+import ByAppView from './ByAppView.vue'
+import BySessionView from './BySessionView.vue'
+import { formatDateYYYYMMDD } from '@/utils/time-format.js'
 
 const { ipcRenderer } = window.require('electron')
 
+// Shell de la ventana de historial (D-10): sostiene todo el estado
+// compartido (día seleccionado, alcance del gráfico, pestaña activa) y es el
+// único punto de IPC. `ByAppView`/`BySessionView`/`UsageChart` son
+// componentes de presentación pura, reciben las entradas ya filtradas por
+// prop, sin IPC propio.
 export default {
+  name: 'HistoryView',
+  components: { TitleBar, UsageChart, ByAppView, BySessionView },
   data() {
     return {
-      logs: [],
-      selectedDate: new Date(),
-      filteredLogs: [],
-      datesWithLogs: [],
+      // `formatDateYYYYMMDD` (hora local) — nunca `toISOString()` (corrige
+      // el defecto de zona horaria V15: en Chile, abrir el historial
+      // después de las 20:00 con `toISOString()` consultaba el día
+      // siguiente y mostraba la lista vacía).
+      selectedDate: formatDateYYYYMMDD(new Date()),
+      // 'day' | 'month' | 'range' — fijo a 'day' en esta etapa; el selector
+      // de alcance y las otras dos opciones llegan en la Tarea 26.
+      chartScope: 'day',
+      customRange: null,
+      activeView: 'byApp', // 'byApp' | 'bySession'
+      sessionDates: [],
+      dayEntries: [],
+      chartEntries: [],
     }
-  },  
-  components: {
-    TitleBar,
   },
   computed: {
     calendarAttributes() {
       return [
         {
           key: 'logs',
-          highlight: {
-            contentClass: 'dot',
-          },
-          dates: this.datesWithLogs,
-        }
+          highlight: { contentClass: 'dot' },
+          dates: this.sessionDates.map(this.parseLocalNoon),
+        },
       ]
     },
+    // Alcance del gráfico (D-12): esta etapa solo cubre 'day', que coincide
+    // por construcción con el intervalo de las dos listas de abajo — el
+    // criterio "el gráfico coincide con la lista por aplicación en el día"
+    // se cumple porque ambos piden el mismo `{from, to}`.
+    chartInterval() {
+      return { from: this.selectedDate, to: this.selectedDate }
+    },
+    chartLabel() {
+      return this.selectedDate
+    },
+  },
+  watch: {
+    selectedDate() {
+      this.loadDayEntries()
+      this.loadChartEntries()
+    },
+  },
+  created() {
+    this.loadSessionDates()
+    this.loadDayEntries()
+    this.loadChartEntries()
   },
   methods: {
-    async loadLogs() {
-      const entries = await ipcRenderer.invoke('get-app-logs')
-      this.logs = entries
-
-      const uniqueDates = [...new Set(entries.map(log => log.date))]
-      this.datesWithLogs = uniqueDates.map(this.parseLocalNoon)
-      this.loadLogsForDate(this.selectedDate)
+    async loadSessionDates() {
+      this.sessionDates = await ipcRenderer.invoke('get-session-dates')
     },
+    async loadDayEntries() {
+      this.dayEntries = await ipcRenderer.invoke('get-sessions', {
+        from: this.selectedDate,
+        to: this.selectedDate,
+      })
+    },
+    async loadChartEntries() {
+      const { from, to } = this.chartInterval
+      this.chartEntries = await ipcRenderer.invoke('get-sessions', { from, to })
+    },
+    // 'YYYY-MM-DD' → Date al mediodía local, para que el punto del
+    // calendario no se corra de día por redondeo de zona horaria.
     parseLocalNoon(dateStr) {
-      const [onlyDate] = dateStr.split('T') // "2025-04-06"
-      
-      // Separa año, mes, día => [2025, 4, 6]
-      const [year, month, day] = onlyDate.split('-').map(Number)
-      
-      // Retorna una fecha local con hora = 12:00 (para evitar el desfase hacia el día anterior)
+      const [year, month, day] = dateStr.split('-').map(Number)
       return new Date(year, month - 1, day, 12)
     },
-    loadLogsForDate(date) {
-      const formatted = date.toISOString().split('T')[0]
-      const todaysLogs = this.logs.filter(log => log.date === formatted)
-
-      // Agrupamos por app y sumamos duraciones en segundos
-      const grouped = {}
-      todaysLogs.forEach(log => {
-        if (!grouped[log.app]) {
-          grouped[log.app] = 0
-        }
-        grouped[log.app] += this.parseDurationToSeconds(log.duration)
-      })
-
-      // Convertimos a array final con la duración en "HH:MM:SS"
-      this.filteredLogs = Object.keys(grouped).map(appName => ({
-        app: appName,
-        duration: this.formatSecondsToHMS(grouped[appName])
-      }))
-    },
-        // Convierte "HH:MM:SS" a segundos
-        parseDurationToSeconds(durationStr) {
-      // Ejemplo: "00:10:15"
-      const [hh, mm, ss] = durationStr.split(':').map(Number)
-      return hh * 3600 + mm * 60 + ss
-    },
-
-    // Convierte segundos a "HH:MM:SS"
-    formatSecondsToHMS(totalSec) {
-      const hours = Math.floor(totalSec / 3600)
-      const mins = Math.floor((totalSec % 3600) / 60)
-      const secs = totalSec % 60
-
-      const hh = String(hours).padStart(2, '0')
-      const mm = String(mins).padStart(2, '0')
-      const ss = String(secs).padStart(2, '0')
-      return `${hh}:${mm}:${ss}`
-    },
     handleDateClick(day) {
-      this.selectedDate = new Date(day.date)
-      this.loadLogsForDate(this.selectedDate)
-    }
+      this.selectedDate = formatDateYYYYMMDD(day.date)
+    },
   },
-  mounted() {
-    this.loadLogs()
-  }
 }
 </script>
 
@@ -156,7 +152,7 @@ html, body {
   max-width: 600px;
   font-family: sans-serif;
   background-color: #1b1b1b;
-  box-sizing: border-box; 
+  box-sizing: border-box;
   border-radius: 0 !important;
 }
 
@@ -200,7 +196,7 @@ html, body {
 }
 .dark-calendar .vc-highlight.vc-highlight-bg-solid.vc-blue {
   background-color: #a4a5a5 !important;
-  opacity: 1 !important; 
+  opacity: 1 !important;
 }
 
 .vc-focus {
@@ -212,34 +208,22 @@ html, body {
   box-shadow: 0 0 0 2px #3a3a3a !important;
 }
 
-/* Estilos para la tabla */
-.log-table {
-  width: 100%;
-  border-collapse: collapse;  /* Para un look más compacto */
+.view-tabs {
+  display: flex;
+  gap: 0.4rem;
   margin-top: 1rem;
-  table-layout: fixed;
 }
-
-/* Cabecera de la tabla */
-.log-table thead th {
-  background-color: #2a2a2a;
+.view-tabs button {
+  flex: 1;
+  background: #333;
+  border: none;
+  color: #ccc;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.view-tabs button.active {
+  background: #6f6f6f;
   color: #fff;
-  padding: 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid #fff; /* Divider */
 }
-
-/* Celdas de datos */
-.log-table tbody td {
-  background-color: #1b1b1b;
-  color: #fff;
-  padding: 0.75rem;
-  border-bottom: 1px solid #333; /* Divider horizontal */
-}
-
-/* Ultima fila sin borde? (Opcional) */
-.log-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
 </style>
