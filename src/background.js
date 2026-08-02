@@ -225,12 +225,16 @@ ipcMain.on('open-history-window', () => {
     height: 600,
     title: 'Historial',
     frame: false,
+    backgroundColor: '#1b1b1b',
+    show: false,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
       enableRemoteModule: true,
     }
   })
+
+  historyWindow.once('ready-to-show', () => historyWindow.show())
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     historyWindow.loadURL(`${process.env.WEBPACK_DEV_SERVER_URL}history.html`)
