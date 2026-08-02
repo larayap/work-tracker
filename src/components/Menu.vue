@@ -73,10 +73,31 @@ export default {
         { value: 3, label: 'P' },
       ],
       appStore: useAppStore(),
+      lastAppliedSize: { ancho: 0, alto: 0 }, // guarda antibucle del ResizeObserver (D13)
+      resizeObserver: null,
     }
   },
   created() {
     this.applied = this.appStore.selected.map(id => ({ id }))
+  },
+  mounted() {
+    // Filas que entran y salen solas (motor de monitoreo) son una causa de
+    // cambio de alto que ningún gesto del usuario acompaña (D13): se observa
+    // el contenedor y se recalcula ante cualquier cambio, venga de donde
+    // venga.
+    const menuEl = document.getElementById('menuContainer')
+    if (menuEl) {
+      this.resizeObserver = new ResizeObserver(() => {
+        requestAnimationFrame(() => this.resizeWindow())
+      })
+      this.resizeObserver.observe(menuEl)
+    }
+  },
+  beforeUnmount() {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect()
+      this.resizeObserver = null
+    }
   },
   watch: {
     'appStore.selected'(nuevo) {
@@ -101,30 +122,7 @@ export default {
       this.$playSound('pressButton')
       this.applied = this.appStore.selected.map(n => ({ id: n }))
       this.showMenu = false
-
-      // Espera a que se renderice el contenido y mide sus dimensiones
-       this.$nextTick(() => {
-        // 1) Mide la altura de tu TitleBar fija:
-        const titleBarEl = document.querySelector('.titlebar-wrapper');
-        const tituloAlto = titleBarEl ? titleBarEl.offsetHeight : 0;
-
-        // 2) Mide TODO el contenido del menú (incluso lo que despertaría scroll):
-        const menuEl = document.getElementById('menuContainer'); 
-        if (!menuEl) return;
-
-        // IMPORTANTE: scrollHeight = contenido total (visible + oculto por scroll)
-        const menuTotalAlto = menuEl.scrollHeight;
-        const menuTotalAncho = menuEl.scrollWidth;
-
-        // 3) Altura total necesaria = altura del TitleBar + altura total del menú
-        const altoDeseado = tituloAlto + menuTotalAlto;
-        // 4) Ancho deseado (puede ser el mayor entre menuTotalAncho y el ancho de la TitleBar):
-        const anchoDeseado = Math.max(menuTotalAncho, titleBarEl.offsetWidth);
-
-        console.log('Ancho deseado:', anchoDeseado, 'Alto deseado:', altoDeseado);
-
-        remote.getCurrentWindow().setContentSize(anchoDeseado, altoDeseado);
-      });
+      this.resizeWindow()
     },
     getComponent(id) {
       switch (id) {
@@ -138,6 +136,9 @@ export default {
           return null;
       }
     },
+    // Única implementación de la medición y el resize (D13): la invocan por
+    // igual el gesto de aplicar selección, el arrastre de widgets y el
+    // ResizeObserver de `mounted()`.
     resizeWindow() {
       this.$nextTick(() => {
         // 1) Mide la altura de tu TitleBar fija:
@@ -145,7 +146,7 @@ export default {
         const tituloAlto = titleBarEl ? titleBarEl.offsetHeight : 0;
 
         // 2) Mide TODO el contenido del menú (incluso lo que despertaría scroll):
-        const menuEl = document.getElementById('menuContainer'); 
+        const menuEl = document.getElementById('menuContainer');
         if (!menuEl) return;
 
         // IMPORTANTE: scrollHeight = contenido total (visible + oculto por scroll)
@@ -157,8 +158,14 @@ export default {
         // 4) Ancho deseado (puede ser el mayor entre menuTotalAncho y el ancho de la TitleBar):
         const anchoDeseado = Math.max(menuTotalAncho, titleBarEl.offsetWidth);
 
-        console.log('Ancho deseado:', anchoDeseado, 'Alto deseado:', altoDeseado);
+        // Guarda antibucle (D13, riesgo de diseño): `setContentSize` cambia el
+        // layout y puede reactivar al ResizeObserver. Solo se aplica cuando el
+        // tamaño calculado difiere del último aplicado en más de 1px.
+        const diffAncho = Math.abs(anchoDeseado - this.lastAppliedSize.ancho);
+        const diffAlto = Math.abs(altoDeseado - this.lastAppliedSize.alto);
+        if (diffAncho <= 1 && diffAlto <= 1) return;
 
+        this.lastAppliedSize = { ancho: anchoDeseado, alto: altoDeseado };
         remote.getCurrentWindow().setContentSize(anchoDeseado, altoDeseado);
       });
     },

@@ -27,6 +27,9 @@
       </div>
     </div>
     <div class="window-controls">
+      <button @click="showOptions = !showOptions" title="Opciones">
+        <font-awesome-icon :icon="['fas', 'gear']" />
+      </button>
       <button v-if="!pinned" @click="togglePin">
         <font-awesome-icon :icon="['fas', 'thumbtack']" />
       </button>
@@ -64,6 +67,8 @@
       <button class="close-btn" @click="closeAppList">Cerrar lista</button>
     </div>
   </div>
+
+  <OpcionesPanel v-if="showOptions" @close="showOptions = false" />
 </template>
 
 <script>
@@ -72,6 +77,7 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 import { faWindowMinimize, faWindowMaximize, faWindowRestore, faX, faGear, faThumbtack, faThumbtackSlash } from '@fortawesome/free-solid-svg-icons'
 import { faRectangleXmark, faSquare } from '@fortawesome/free-regular-svg-icons'
 import { useAppStore } from '@/stores/menu'
+import OpcionesPanel from '@/components/OpcionesPanel.vue'
 
 library.add(faWindowMinimize, faWindowMaximize, faWindowRestore, faRectangleXmark, faX, faSquare, faGear, faThumbtack, faThumbtackSlash)
 
@@ -79,7 +85,7 @@ const { remote, ipcRenderer } = require('electron')
 
 export default {
   name: 'TitleBar',
-  components: { FontAwesomeIcon },
+  components: { FontAwesomeIcon, OpcionesPanel },
   data() {
     return {
       maximizado: false,
@@ -87,6 +93,7 @@ export default {
       openWindows: [],
       showAppList: false,
       selectedIndex: 0,
+      showOptions: false,
       appStore: useAppStore(),
     }
   },
