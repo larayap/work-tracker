@@ -912,11 +912,11 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   ambas vistas; los puntos del calendario (`get-session-dates`) coinciden con los días reales
   del historial migrado.
 
-- [ ] `get-app-logs` reemplazado por `get-sessions`/`get-session-dates`.
-- [ ] Ningún uso de `toISOString()` para fechas de la ventana: todo pasa por
+- [x] `get-app-logs` reemplazado por `get-sessions`/`get-session-dates`.
+- [x] Ningún uso de `toISOString()` para fechas de la ventana: todo pasa por
   `formatDateYYYYMMDD`.
-- [ ] El shell sostiene `selectedDate`, `chartScope`, `customRange` y la pestaña activa.
-- [ ] Verificado después de las 20:00 hora local: el día por defecto es hoy y muestra sus
+- [x] El shell sostiene `selectedDate`, `chartScope`, `customRange` y la pestaña activa.
+- [x] Verificado después de las 20:00 hora local: el día por defecto es hoy y muestra sus
   sesiones (V15 corregido).
 
 ### Tarea 23: `ByAppView.vue` — tabla actual como componente de presentación
@@ -931,9 +931,9 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
 - **Criterio de completado**: verificación manual — el resultado visible es idéntico al de
   la tabla actual (mismos programas, mismas duraciones sumadas) para un mismo día.
 
-- [ ] Componente de presentación pura, sin IPC.
-- [ ] Usa `aggregateByApp` para el colapso por programa.
-- [ ] El resultado visible coincide con el de la tabla actual para el mismo día.
+- [x] Componente de presentación pura, sin IPC.
+- [x] Usa `aggregateByApp` para el colapso por programa.
+- [x] El resultado visible coincide con el de la tabla actual para el mismo día.
 
 ### Tarea 24: `BySessionView.vue` — lista cronológica con grupos como bloque
 
@@ -950,9 +950,9 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   miembros (no reloj de pared); una sesión sin nombre muestra el nombre del programa como
   etiqueta.
 
-- [ ] Usa `buildDayTimeline` para la lista y el colapso por grupo.
-- [ ] Un grupo se muestra como bloque único con su total derivado y sus miembros debajo.
-- [ ] Una sesión sin nombre muestra una etiqueta neutra (nombre del programa).
+- [x] Usa `buildDayTimeline` para la lista y el colapso por grupo.
+- [x] Un grupo se muestra como bloque único con su total derivado y sus miembros debajo.
+- [x] Una sesión sin nombre muestra una etiqueta neutra (nombre del programa).
 
 ### Tarea 25: `UsageChart.vue` — gráfico de barras horizontales, tema oscuro
 
@@ -978,11 +978,11 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   tipografía de respaldo sin romperse (limitación heredada, documentada en
   [[0010-charting-library-confined-to-history-bundle]], no una regresión de esta tarea).
 
-- [ ] Registro explícito y mínimo de chart.js (sin `chart.js/auto`, sin `Legend`/`Title`).
-- [ ] `indexAxis: 'y'`, sin grid decorativo, defaults oscuros fijados una sola vez.
-- [ ] El dataset sale de un `computed` sobre `aggregateByApp`.
-- [ ] El contenedor crece con la cantidad de aplicaciones y scrollea, sin top-N ni "Otras".
-- [ ] Verificado: los totales con alcance día coinciden con `ByAppView`.
+- [x] Registro explícito y mínimo de chart.js (sin `chart.js/auto`, sin `Legend`/`Title`).
+- [x] `indexAxis: 'y'`, sin grid decorativo, defaults oscuros fijados una sola vez.
+- [x] El dataset sale de un `computed` sobre `aggregateByApp`.
+- [x] El contenedor crece con la cantidad de aplicaciones y scrollea, sin top-N ni "Otras".
+- [x] Verificado: los totales con alcance día coinciden con `ByAppView`.
 
 ---
 

@@ -415,3 +415,44 @@ referencia a `showHistory`/`filteredLogs`/`loadLogsForDate` se confirmaron ausen
 desaparezca, y que un arrastre sostenido >1s no se rompa con un snapshot llegando en medio
 (la guarda `isDragging` está implementada pero su efecto solo se observa con un timer real de
 1000ms y un gesto de mouse real).
+
+## 2026-08-02 | design-gap-fixed | vue.config.js | ADR-0010 asumía confinamiento que el build por defecto no daba — corregido en sdd-apply
+
+**Detectado por**: sdd-apply en `sessions-groups-history`, etapa 6a, al inspeccionar el build
+tras agregar `chart.js`/`vue-chartjs`.
+**Descripción**: `design.md`/ADR-0010 afirman que, por tener `history` como página separada de
+`index` en `vue.config.js`, "lo que se importe desde la ventana de historial no entra al
+bundle de la ventana del cronómetro" — verificado solo leyendo la configuración de páginas, no
+el output real del build. El `splitChunks` por defecto de `vue-cli-service`
+(`node_modules/@vue/cli-service/lib/config/app.js`) usa un único `cacheGroup` con
+`test: /node_modules/` y `name: 'chunk-vendors'` fijo, sin distinguir por entrada: **todo**
+node_modules de **ambas** páginas termina en el mismo archivo, que `index.html` también carga.
+Confirmado con el build real: tras agregar las dependencias, `chunk-vendors.js` pasó de 513 KiB
+a 699 KiB, y `dist/index.html` (la ventana del cronómetro, siempre abierta) referenciaba ese
+archivo — violación directa de la invariante que el ADR fija como "la que hay que sostener".
+**Acción tomada**: `vue.config.js` gana un `chainWebpack` que separa `chart.js`/`vue-chartjs`
+en su propio `cacheGroup` (`chunk-chart-vendors`), y `pages.history.chunks` lo agrega
+explícitamente mientras `pages.index.chunks` lo excluye. Verificado tras la corrección:
+`chunk-vendors.js` vuelve a 522 KiB (la línea base sin chart.js), `chunk-chart-vendors.js`
+(177 KiB) existe aparte, `dist/index.html` no lo referencia y `dist/history.html` sí; grep de
+la firma `Chart.js v...` da 8 matches en `chunk-chart-vendors.js` y 0 en `chunk-vendors.js`.
+**Riesgo**: es una corrección de infraestructura de build fuera de las 26 tareas de
+`tasks.md`, necesaria para que el comportamiento real cumpla lo que el ADR de esta misma fase
+declara. No afecta ningún acceptance criteria de las specs (es la condición para que
+`charting-library-confined-to-history-bundle` sea cierto, no un requisito propio).
+
+## 2026-08-02 | unverifiable-in-env | Etapa 6a (historial: vistas + gráfico del día) — requiere Windows con la ventana de historial abierta
+
+**Detectado por**: sdd-apply en `sessions-groups-history`, al cerrar la etapa 6a.
+**Descripción**: verificado en esta fase: lint y build limpios; la corrección de zona horaria
+V15 reproducida y confirmada con `TZ=America/Santiago node -e` (`formatDateYYYYMMDD` da
+`2026-08-02` a las 21:30 hora de Chile, `toISOString().split('T')[0]` da `2026-08-03` —
+confirma el bug viejo y la corrección nueva); ningún componente de presentación
+(`ByAppView`/`BySessionView`/`UsageChart`) hace IPC propio (grep sin resultados); el
+confinamiento del bundle de gráficos, corregido y verificado (ver observación
+`design-gap-fixed` de esta misma fecha). Queda sin verificar en este entorno (requiere
+Electron real, IPC real y un canvas renderizado): que el calendario muestre los puntos
+correctos al hacer click, que `ByAppView` reproduzca visualmente la tabla anterior, que
+`BySessionView` muestre el orden cronológico correcto con grupos como bloque, y que
+`UsageChart` renderice barras legibles con scroll cuando hay más aplicaciones de las que
+caben.
