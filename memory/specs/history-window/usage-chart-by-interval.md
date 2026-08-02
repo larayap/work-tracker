@@ -14,7 +14,7 @@ depends_on: ["[[sessions-json-persistence]]"]
 change_ref: "[[sessions-groups-history]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/sessions-groups-history"
 feature_branch: "feature/sessions-groups-history"
-commits: ["0e248504ab1eefc6af7b4c21ce6aa34853b2ac14", "ad57224236cf80d5d5e8db1fd0f260950394c567"]
+commits: ["0e248504ab1eefc6af7b4c21ce6aa34853b2ac14", "ad57224236cf80d5d5e8db1fd0f260950394c567", "bb8d3c454bec3fd83f51829e80c6dbabb4a195c9"]
 mr: ""
 acceptance_criteria:
   - "El gráfico muestra por defecto el tiempo por aplicación del día seleccionado"
@@ -26,7 +26,7 @@ related: ["[[session-view]]"]
 affects: []
 adrs: []
 scope: ["src/history/HistoryView.vue", "src/main/session-log.js", "package.json"]
-verified_at: null
+verified_at: "2026-08-02"
 created: "2026-08-02"
 updated: "2026-08-02"
 tags: [capability-spec]
@@ -105,9 +105,10 @@ agrupada bajo una categoría genérica
 
 ## Acceptance Criteria
 
-Implementación completa (commits 0e24850, ad57224). Marcados por lectura directa +
-verificación de la lógica pura con `node -e`; la observación visual con la app real
-(renderizado del gráfico, `v-date-picker`, scroll) requiere Windows — ver `observations.md`.
+Implementación completa (commits 0e24850, ad57224, bb8d3c4 — el último corrige F1 de
+`judgment-fixes-sessions-groups-history`). Marcados por lectura directa + verificación de la
+lógica pura con `node -e`; la observación visual con la app real (renderizado del gráfico,
+`v-date-picker`, scroll) requiere Windows — ver `observations.md`.
 
 - [x] El gráfico muestra por defecto el tiempo por aplicación del día seleccionado,
   coincidiendo con la lista por aplicación. (`chartScope: 'day'` por defecto; en ese alcance
@@ -121,8 +122,20 @@ verificación de la lógica pura con `node -e`; la observación visual con la ap
   importar el alcance elegido para el gráfico. (`dayEntries` depende solo de `selectedDate`;
   ningún camino de código lo hace depender de `chartScope`)
 - [x] Ninguna aplicación con uso registrado en el intervalo queda fuera del gráfico ni
-  agrupada bajo una categoría genérica. (`aggregateByApp` no tiene lógica de top-N,
-  verificado exhaustivamente desde la Tarea 11)
+  agrupada bajo una categoría genérica. **Re-verificado tras corrección** (2026-08-02,
+  `[[judgment-fixes-sessions-groups-history]]`#F1): `sdd-judgment` (iteración 1) encontró que
+  esta afirmación, aunque correcta sobre "sin lógica de top-N", era insuficiente — la pérdida
+  real no venía de un top-N sino de que `aggregateByApp` agrupaba por `entry.appId`, y las 32
+  entradas migradas desde `usage-log.txt` llevan `appId: null`, así que colapsaban en una sola
+  fila (6 de 9 días reales del `usage-log.txt` de producción de este entorno perdían
+  programas). Corregido con una clave de agrupación que degrada al nombre del programa cuando
+  no hay `appId`. Re-verificado con `aggregateByApp` real contra las 32 entradas migradas
+  reales: los 9 días muestran sus programas separados, con la suma de duración exacta por
+  programa (sin pérdida ni doble conteo), y sin colisión de `key` entre filas degradadas.
+
+  Se falsificó por control negativo previo (el mismo script contra el código sin corregir
+  reproduce exactamente la pérdida que el judgment-report documentó) y se confirmó el fix por
+  control positivo (el mismo script contra el código corregido).
 - [ ] Un intervalo con más aplicaciones de las que caben en pantalla se puede recorrer
   completo mediante desplazamiento.
 
