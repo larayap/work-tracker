@@ -36,8 +36,15 @@ export const useMonitoredAppsStore = defineStore('monitoredApps', {
     },
     // ensureIcon(exePath) — pide el ícono si falta y lo cachea en `icons`
     // (canal `get-app-icon`, Tarea 22).
+    //
+    // Guard de reentrada por `hasOwnProperty`, no por verdad/falsedad del
+    // valor: un ícono legítimamente resuelto en `null` (extracción y
+    // respaldo fallidos) es una clave ya asignada, no "pendiente". Con
+    // `this.icons[exePath]` a secas, `null` es falsy y el guard nunca se
+    // activaba — el `watch` de `rows` (que se reemplaza por referencia en
+    // cada tick, D2/D17) repetía el IPC indefinidamente para esa fila.
     async ensureIcon(exePath) {
-      if (!exePath || this.icons[exePath]) return
+      if (!exePath || Object.prototype.hasOwnProperty.call(this.icons, exePath)) return
       const { dataUrl } = await ipcRenderer.invoke('get-app-icon', exePath)
       this.icons[exePath] = dataUrl
     },
