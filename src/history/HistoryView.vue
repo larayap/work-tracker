@@ -12,6 +12,25 @@
       @dayclick="handleDateClick"
     />
 
+    <div class="scope-tabs">
+      <button :class="{ active: chartScope === 'day' }" @click="chartScope = 'day'">Día</button>
+      <button :class="{ active: chartScope === 'month' }" @click="chartScope = 'month'">Mes</button>
+      <button :class="{ active: chartScope === 'range' }" @click="chartScope = 'range'">Rango</button>
+    </div>
+
+    <!-- Modificador `.range` de `v-model` (v-calendar 3.1.2) — no la prop
+         `is-range`, que es la API de v2 y no debe copiarse (V12/D-12).
+         `eslint-plugin-vue` no conoce los modificadores custom de un
+         componente externo compilado (no SFC), de ahí el disable puntual. -->
+    <!-- eslint-disable vue/no-custom-modifiers-on-v-model -->
+    <v-date-picker
+      v-if="chartScope === 'range'"
+      v-model.range="customRange"
+      :max-date="new Date()"
+      class="dark-calendar range-picker"
+    />
+    <!-- eslint-enable vue/no-custom-modifiers-on-v-model -->
+
     <UsageChart :entries="chartEntries" :label="chartLabel" />
 
     <div class="view-tabs">
@@ -34,8 +53,37 @@ import UsageChart from './UsageChart.vue'
 import ByAppView from './ByAppView.vue'
 import BySessionView from './BySessionView.vue'
 import { formatDateYYYYMMDD } from '@/utils/time-format.js'
+import { monthBounds } from '@/utils/session-aggregate.js'
 
 const { ipcRenderer } = window.require('electron')
+
+const MONTH_ABBR = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+const MONTH_FULL = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+]
+
+// Rótulo del intervalo vigente (D-11/D-12), calculado en el shell a partir
+// de las mismas cadenas 'YYYY-MM-DD' que ya viajan por toda la app — sin
+// librería de fechas adicional, mismo criterio que `session-aggregate.js`.
+function formatDayLabel(dateStr) {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return `${day} ${MONTH_ABBR[month - 1]} ${year}`
+}
+
+function formatMonthLabel(dateStr) {
+  const [year, month] = dateStr.split('-').map(Number)
+  return `${MONTH_FULL[month - 1]} ${year}`
+}
+
+function formatRangeLabel(fromStr, toStr) {
+  const [, fromMonth, fromDay] = fromStr.split('-').map(Number)
+  const [, toMonth, toDay] = toStr.split('-').map(Number)
+  if (fromMonth === toMonth) {
+    return `${fromDay}–${toDay} ${MONTH_ABBR[fromMonth - 1]}`
+  }
+  return `${fromDay} ${MONTH_ABBR[fromMonth - 1]}–${toDay} ${MONTH_ABBR[toMonth - 1]}`
+}
 
 // Shell de la ventana de historial (D-10): sostiene todo el estado
 // compartido (día seleccionado, alcance del gráfico, pestaña activa) y es el
@@ -52,10 +100,8 @@ export default {
       // después de las 20:00 con `toISOString()` consultaba el día
       // siguiente y mostraba la lista vacía).
       selectedDate: formatDateYYYYMMDD(new Date()),
-      // 'day' | 'month' | 'range' — fijo a 'day' en esta etapa; el selector
-      // de alcance y las otras dos opciones llegan en la Tarea 26.
-      chartScope: 'day',
-      customRange: null,
+      chartScope: 'day', // 'day' | 'month' | 'range' — gobierna solo el gráfico (D-12)
+      customRange: null, // { start: Date, end: Date } | null — solo con chartScope 'range'
       activeView: 'byApp', // 'byApp' | 'bySession'
       sessionDates: [],
       dayEntries: [],
@@ -72,21 +118,45 @@ export default {
         },
       ]
     },
-    // Alcance del gráfico (D-12): esta etapa solo cubre 'day', que coincide
-    // por construcción con el intervalo de las dos listas de abajo — el
-    // criterio "el gráfico coincide con la lista por aplicación en el día"
-    // se cumple porque ambos piden el mismo `{from, to}`.
+    // Alcance del gráfico (D-12), derivado según la tabla de la decisión: con
+    // `chartScope: 'day'` coincide por construcción con el intervalo de las
+    // dos listas de abajo — el criterio "el gráfico coincide con la lista
+    // por aplicación en el día" se cumple porque ambos piden el mismo
+    // `{from, to}`. Las dos listas nunca miran `chartScope`: siguen ancladas
+    // a `selectedDate` sin excepción.
     chartInterval() {
+      if (this.chartScope === 'month') {
+        return monthBounds(this.selectedDate)
+      }
+      if (this.chartScope === 'range' && this.customRange) {
+        return {
+          from: formatDateYYYYMMDD(this.customRange.start),
+          to: formatDateYYYYMMDD(this.customRange.end),
+        }
+      }
       return { from: this.selectedDate, to: this.selectedDate }
     },
     chartLabel() {
-      return this.selectedDate
+      if (this.chartScope === 'month') {
+        return formatMonthLabel(this.selectedDate)
+      }
+      if (this.chartScope === 'range' && this.customRange) {
+        const { from, to } = this.chartInterval
+        return formatRangeLabel(from, to)
+      }
+      return formatDayLabel(this.selectedDate)
     },
   },
   watch: {
     selectedDate() {
       this.loadDayEntries()
       this.loadChartEntries()
+    },
+    chartScope() {
+      this.loadChartEntries()
+    },
+    customRange() {
+      if (this.chartScope === 'range') this.loadChartEntries()
     },
   },
   created() {
@@ -208,12 +278,14 @@ html, body {
   box-shadow: 0 0 0 2px #3a3a3a !important;
 }
 
-.view-tabs {
+.view-tabs,
+.scope-tabs {
   display: flex;
   gap: 0.4rem;
   margin-top: 1rem;
 }
-.view-tabs button {
+.view-tabs button,
+.scope-tabs button {
   flex: 1;
   background: #333;
   border: none;
@@ -222,8 +294,13 @@ html, body {
   cursor: pointer;
   border-radius: 4px;
 }
-.view-tabs button.active {
+.view-tabs button.active,
+.scope-tabs button.active {
   background: #6f6f6f;
   color: #fff;
+}
+
+.range-picker {
+  margin-top: 0.6rem;
 }
 </style>

@@ -456,3 +456,24 @@ correctos al hacer click, que `ByAppView` reproduzca visualmente la tabla anteri
 `BySessionView` muestre el orden cronológico correcto con grupos como bloque, y que
 `UsageChart` renderice barras legibles con scroll cuando hay más aplicaciones de las que
 caben.
+
+## 2026-08-02 | unverifiable-in-env | Etapa 6b (alcance mes/rango) y controles de no regresión finales — requieren Windows con la app corriendo
+
+**Detectado por**: sdd-apply en `sessions-groups-history`, al cerrar la etapa 6b (última etapa
+del cambio).
+**Descripción**: verificado en esta fase con `node -e`, reproduciendo exactamente la lógica de
+`chartInterval`/`chartLabel` de `HistoryView.vue`: alcance día → `{from:'2026-08-15',
+to:'2026-08-15'}` con rótulo "15 ago 2026"; mes → `monthBounds` da
+`{from:'2026-08-01', to:'2026-08-31'}` con rótulo "Agosto 2026"; rango 12→19 agosto da
+`{from:'2026-08-12', to:'2026-08-19'}` con rótulo "12–19 ago" — los tres coinciden con los
+ejemplos exactos de `design.md`. Lint y build limpios; el confinamiento del bundle de
+gráficos (observación anterior) se re-verificó tras esta etapa y sigue intacto. Por lectura:
+`dayEntries` (que alimenta `ByAppView`/`BySessionView`) depende solo de `selectedDate`, nunca
+de `chartScope` — las dos listas no pueden cambiar cuando cambia el alcance del gráfico.
+Queda sin verificar en este entorno (requiere Electron real con `<v-date-picker>` renderizado
+y datos reales de más de un día): que elegir mes o rango en la app real muestre los totales
+correctos con las listas ancladas al día. También quedan sin cerrar los dos controles de no
+regresión transversales de `tasks.md` (detener/cerrar proceso con entradas `auto` sigue
+igual; el límite de 4 con y sin agrupar) — su equivalente a nivel de reductor puro ya se
+verificó en la etapa 3 (`reduceLifecycle` con entradas `auto`), pero el control transversal
+tal como está escrito pide la app real corriendo.

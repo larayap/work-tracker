@@ -1015,11 +1015,11 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   rotulando las fechas elegidas; un intervalo con más aplicaciones de las que caben se
   recorre con scroll (control de no regresión de Tarea 25).
 
-- [ ] Control de tres opciones (día/mes/rango) en el shell.
-- [ ] `{from, to}` derivado según la tabla de D-12 para cada alcance.
-- [ ] `<v-date-picker v-model.range="customRange">`, no `is-range`.
-- [ ] La cabecera del gráfico rotula el intervalo vigente en los tres alcances.
-- [ ] Las dos listas de abajo no cambian cuando cambia `chartScope`.
+- [x] Control de tres opciones (día/mes/rango) en el shell.
+- [x] `{from, to}` derivado según la tabla de D-12 para cada alcance.
+- [x] `<v-date-picker v-model.range="customRange">`, no `is-range`.
+- [x] La cabecera del gráfico rotula el intervalo vigente en los tres alcances.
+- [x] Las dos listas de abajo no cambian cuando cambia `chartScope`.
 - [ ] Verificado: mes y rango muestran totales correctos con las listas ancladas al día.
 
 ---
