@@ -90,6 +90,11 @@ export default {
   created() {
     this.monitoredApps.init()
   },
+  watch: {
+    'monitoredApps.rows'(rows) {
+      rows.forEach((row) => this.monitoredApps.ensureIcon(row.exePath))
+    },
+  },
   methods: {
     openHistoryWindow() {
       ipcRenderer.send('open-history-window')
