@@ -28,12 +28,24 @@ let diskWriteQueue = Promise.resolve()
 // persistToDisk(key, dataUrl) — encola una escritura; lee el archivo recién
 // en el momento en que le toca el turno, no antes, para no perder entradas
 // escritas por escrituras encoladas previamente.
+//
+// El `.catch` final es el fix de F1 (judgment-report, iteración 2): sin él,
+// una única falla de `jsonStore.writeJson` (`fs.writeFileSync` sin try/catch
+// por diseño, D11/ADR-0006) deja `diskWriteQueue` como una promesa rechazada,
+// y todo `.then()` encadenado después nunca vuelve a ejecutar su callback —
+// la cola queda inutilizada por el resto del proceso. Absorber el error acá
+// restablece la cola a una promesa resuelta para la próxima escritura, y de
+// paso evita que `getIcon` (que hace `await persistToDisk(...)`) rechace por
+// un fallo de la caché en disco: esa caché es una optimización, no un
+// requisito de corrección del ícono, que ya quedó servido desde memoria.
 function persistToDisk(key, dataUrl) {
-  diskWriteQueue = diskWriteQueue.then(() => {
-    const diskCache = jsonStore.readJson(getCacheFilePath(), {})
-    diskCache[key] = dataUrl
-    jsonStore.writeJson(getCacheFilePath(), diskCache)
-  })
+  diskWriteQueue = diskWriteQueue
+    .then(() => {
+      const diskCache = jsonStore.readJson(getCacheFilePath(), {})
+      diskCache[key] = dataUrl
+      jsonStore.writeJson(getCacheFilePath(), diskCache)
+    })
+    .catch(() => {})
   return diskWriteQueue
 }
 
