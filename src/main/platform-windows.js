@@ -83,10 +83,20 @@ function listRunningProcesses() {
 // con `exePath`/`pid` sin cambiar el significado de `appName`.
 // ---------------------------------------------------------------------------
 
-// listOpenWindows() → Promise<[{ appName, exePath, pid }]>
+// listOpenWindows() → Promise<[{ appName, exePath, pid, imageName }]>
+//
+// `imageName` es el nombre de imagen real (con extensión), distinto de
+// `appName` (que es `$_.Description` o `$_.Name` — ninguno de los dos lleva
+// `.exe`). Se agrega para que el `appId` degradado que arma D4 (`name:` +
+// nombre de imagen) pueda correlacionar contra `tasklist /FO CSV /NH`, que sí
+// devuelve el nombre de imagen con extensión (fix C2, judgment-fixes-iteration-1).
+// Con ruta resoluble se toma el nombre de archivo de esa ruta; sin ruta
+// (proceso elevado, el caso degradado) se reconstruye desde `$_.Name`, que en
+// `Get-Process` es el nombre de proceso sin extensión — agregar '.exe' es lo
+// mismo que ya asume `parseTasklistCsv` para el resto de la correlación.
 function listOpenWindows() {
   return new Promise((resolve, reject) => {
-    const cmd = `powershell -Command "Get-Process | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object @{Name='appName'; Expression={ if ($_.Description) { $_.Description } else { $_.Name } }}, @{Name='exePath'; Expression={ $_.Path }}, @{Name='pid'; Expression={ $_.Id }} | ConvertTo-Json"`
+    const cmd = `powershell -Command "Get-Process | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object @{Name='appName'; Expression={ if ($_.Description) { $_.Description } else { $_.Name } }}, @{Name='exePath'; Expression={ $_.Path }}, @{Name='pid'; Expression={ $_.Id }}, @{Name='imageName'; Expression={ if ($_.Path) { [System.IO.Path]::GetFileName($_.Path) } else { $_.Name + '.exe' } }} | ConvertTo-Json"`
     exec(cmd, (error, stdout) => {
       if (error) return reject(error)
       try {
