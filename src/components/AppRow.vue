@@ -3,6 +3,11 @@
     <div class="row-data">
       <div class="app-icon-inline">
         <img :src="icon || fallbackIcon" :alt="`Icono de ${row.name}`" :title="row.name" />
+        <span
+          v-if="row.type === 'manual'"
+          class="manual-marker"
+          title="Modalidad: solo esta vez"
+        ></span>
       </div>
       <span class="app-name" :title="row.name">{{ row.name }}</span>
       <div class="display">{{ formattedTime }}</div>
@@ -80,6 +85,7 @@ export default {
 }
 
 .app-icon-inline {
+  position: relative;
   width: 32px;
   height: 32px;
   display: flex;
@@ -91,6 +97,21 @@ export default {
   width: 100%;
   height: 100%;
   filter: grayscale(1);
+}
+
+/* Marcador discreto de fila manual/transitoria (Tarea 10): posicionado en
+   absoluto sobre el ícono, no reserva espacio propio ni desplaza el resto de
+   la fila (nombre, reloj, indicador de estado, botón de detener). */
+.manual-marker {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffb347;
+  border: 1px solid #222;
+  pointer-events: none;
 }
 
 .app-name {
