@@ -881,8 +881,8 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   vue-chartjs` (o inspección de `package-lock.json`) confirma versiones resueltas
   compatibles entre sí.
 
-- [ ] `chart.js` y `vue-chartjs` agregadas a `dependencies` en `package.json`.
-- [ ] `npm install` corrido, lockfile actualizado con versiones compatibles.
+- [x] `chart.js` y `vue-chartjs` agregadas a `dependencies` en `package.json`.
+- [x] `npm install` corrido, lockfile actualizado con versiones compatibles.
 
 ### Tarea 22: `HistoryView.vue` — shell (calendario, pestañas, IPC, fix de zona horaria)
 
