@@ -586,3 +586,50 @@ commitearon — el código que documentan sí está commiteado (ver `git log`), 
 que lo respalda no. No se resuelve acá: excede el alcance de "exactamente los 4 defectos" del
 despacho, y tocar ese backlog de commits mezclaría objetivos de fases no relacionadas con esta.
 Candidato a resolver en `sdd-archive` o en un `chore(sdd)` dedicado antes de cerrar el cambio.
+
+---
+
+## 2026-08-02 | finding | sessions-groups-history | sdd-judgment iteración 2: PASS contra dos `fail` de los jueces, con dos limitaciones conocidas registradas
+
+Los cuatro defectos de la iteración 1 (F1–F4) quedaron corregidos y verificados con control
+negativo propio del adjudicador contra el sistema real: `aggregateByApp` sobre las 32 entradas
+migradas reales (9/9 días separan cada programa, antes 6/9 fusionaban), `monitor-engine.js` real
+con timer real (2 escrituras pre-fix → 1 post-fix), `json-store.js` contra NTFS real (destino
+ilegible pre-fix → historial previo intacto post-fix) y el script PowerShell real de instaladas
+(188 → 82, MySQL y VLC con su nombre principal).
+
+Los dos jueces retornaron `fail`; el adjudicador retornó `pass`. Ninguno de los dos hallazgos es
+compartido como bloqueante: el único `confirmed` lo califica Judge B como "no bloqueante por sí
+solo", y el `fail` de Judge B descansa en un hallazgo que Judge A revisó y cerró sin defecto.
+Detalle completo en `judgment-report.md` (iteración 2). Las dos limitaciones que quedan vivas:
+
+- **[conocida] La fila resucita en memoria tras `closeAllRows`** (`monitor-engine.js:412-418`).
+  `stopEngine()` impide ticks nuevos pero no cancela el tick ya suspendido en el `await` del
+  foco, que reanuda y recrea la fila desde `selection` (que el cierre nunca toca). Deja
+  literalmente incumplida la conjunción "ninguna fila vuelve a existir" del Requirement de
+  `[[judgment-fixes-sessions-groups-history]]`, pero sin consecuencia alcanzable: las dos vías al
+  duplicado —un segundo `closeAllRows` (Electron emite `before-quit` una sola vez por secuencia
+  de salida) y un ■ del usuario durante el desarme del proceso— se probaron y ninguna es
+  alcanzable en la práctica. **Endurecimiento de una línea para un cambio futuro**: vaciar
+  también `selection` dentro de `closeAllRows`, con lo que el paso de altas de `reduceLifecycle`
+  se queda sin nada sobre qué dar de alta y la vía queda cerrada por construcción.
+- **[conocida] `writeJsonAtomic` es más frágil que `writeJson` ante un bloqueo que niega el
+  borrado** (`json-store.js:34-38`). Matriz de share modes medida contra NTFS real:
+  `FileShare::ReadWrite` → `writeJson` OK / `writeJsonAtomic` `EACCES` (única regresión);
+  `ReadWrite, Delete` (el que usan antivirus e indexadores convencionalmente) → ambos OK;
+  `Read` y `None` → ambos fallaban ya antes. El intercambio es favorable y ninguna spec cubre el
+  comportamiento ante bloqueos de terceros, pero la excepción no la captura nadie (ADR-0006
+  declara la persistencia sin `try/catch` por diseño), así que en ese caso se pierden las
+  sesiones que se estaban cerrando —el historial previo queda intacto—.
+
+Nota de método reutilizable: la matriz de share modes de Windows (`FileShare::None` / `Read` /
+`ReadWrite` / `ReadWrite, Delete`, sostenidos desde PowerShell con `[System.IO.File]::Open`
+mientras Node escribe) es la forma de decidir si un tmp+rename es una mejora o una regresión
+frente a una escritura directa. Sin esa matriz, el hallazgo parece un `high` bloqueante; con
+ella, se ve que la regresión vive en un único share mode y que los bloqueos más estrictos
+rompían igual el código anterior.
+
+Limitación de entorno registrada: no se pudo contar empíricamente cuántas veces Electron emite
+`before-quit` (el binario de `node_modules/electron` 13.6.9 no levanta acá por `libnss3.so`
+ausente). Esa parte del análisis es razonamiento sobre el diseño documentado de Electron, no
+ejecución.
