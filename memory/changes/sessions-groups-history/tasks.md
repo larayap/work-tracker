@@ -854,13 +854,13 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   medio) no rompe el arrastre — la guarda `isDragging` lo cubre. Por lectura: el bloque del
   modal muerto y toda referencia a `showHistory` desaparecieron del archivo.
 
-- [ ] Dos `<draggable>` con `group="monitored-rows"` sobre arrays derivados del snapshot.
-- [ ] La guarda `isDragging` suspende la reconstrucción de los arrays durante el gesto.
-- [ ] `@change` traduce el gesto a `setRowGroup`, sin persistir mutación local optimista más
+- [x] Dos `<draggable>` con `group="monitored-rows"` sobre arrays derivados del snapshot.
+- [x] La guarda `isDragging` suspende la reconstrucción de los arrays durante el gesto.
+- [x] `@change` traduce el gesto a `setRowGroup`, sin persistir mutación local optimista más
   allá del próximo snapshot.
-- [ ] La franja aparece con ≥2 filas sueltas y se vuelve cabecera editable con la primera
+- [x] La franja aparece con ≥2 filas sueltas y se vuelve cabecera editable con la primera
   fila del grupo.
-- [ ] El modal de historial muerto (`showHistory` y sus referencias) fue eliminado.
+- [x] El modal de historial muerto (`showHistory` y sus referencias) fue eliminado.
 - [ ] Verificado en Windows: agrupar, desagrupar, grupo vacío desaparece, arrastre sostenido
   >1s no se rompe con un snapshot en medio.
 

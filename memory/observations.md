@@ -400,3 +400,18 @@ en Windows, con IPC y disco reales):
   `sessionName` se ve igual que antes") sí se verificó por lectura: `displayName` es
   `row.sessionName || row.name`, idéntico al `{{ row.name }}` anterior cuando `sessionName`
   es `null`.
+
+## 2026-08-02 | unverifiable-in-env | Etapa 5 (grupos por arrastre) — requiere Windows con mouse real
+
+**Detectado por**: sdd-apply en `sessions-groups-history`, al cerrar la etapa 5.
+**Descripción**: drag & drop no es verificable con `node -e` ni con interop (requiere eventos
+de mouse reales sobre un DOM renderizado). Verificado en esta fase: lint y build limpios; por
+lectura, los dos `<draggable group="monitored-rows">` están sobre `dragUngrouped`/`dragGrouped`
+derivados del `watch` con la guarda `isDragging`; `onUngroupedDragChange`/`onGroupDragChange`
+solo actúan sobre `evt.added` (nunca `evt.removed`), traduciendo el gesto a
+`setRowGroup(appId, groupId | null)`; el bloque del modal de historial muerto y toda
+referencia a `showHistory`/`filteredLogs`/`loadLogsForDate` se confirmaron ausentes por
+`grep`. Queda sin verificar en este entorno: agrupar, desagrupar, que un grupo vacío
+desaparezca, y que un arrastre sostenido >1s no se rompa con un snapshot llegando en medio
+(la guarda `isDragging` está implementada pero su efecto solo se observa con un timer real de
+1000ms y un gesto de mouse real).

@@ -20,30 +20,72 @@
       <div class="display">00:00:00</div>
     </div>
 
-    <AppRow
-      v-for="row in monitoredApps.rows"
-      :key="row.appId"
-      :row="row"
-      :icon="monitoredApps.icons[row.exePath]"
-      @stop="monitoredApps.stopRow(row.appId)"
-    />
+    <!-- Filas sueltas (D-7/group-composition-and-drag): array local derivado
+         del snapshot por el `watch` de más abajo, suspendido mientras
+         `isDragging` está activo. `vuedraggable` muta este array de forma
+         optimista durante el gesto; el próximo snapshot lo reconstruye desde
+         el estado autoritativo del main. -->
+    <draggable
+      v-model="dragUngrouped"
+      class="drag-list"
+      group="monitored-rows"
+      item-key="appId"
+      @start="isDragging = true"
+      @end="isDragging = false"
+      @change="onUngroupedDragChange"
+    >
+      <template #item="{ element }">
+        <AppRow
+          :row="element"
+          :icon="monitoredApps.icons[element.exePath]"
+          @stop="monitoredApps.stopRow(element.appId)"
+        />
+      </template>
+    </draggable>
 
-    <AppSelectorModal v-if="showSelector" @close="showSelector = false" />
-
-    <!-- Modal de historial -->
-    <div v-if="showHistory" class="modal-overlay" @click.self="showHistory = false">
-      <div class="modal-content calendar-history">
-        <h3>Historial por día</h3>
-        <input type="date" v-model="selectedDate" @change="loadLogsForDate" />
-        <ul class="history-list">
-          <li v-for="(log, index) in filteredLogs" :key="index">
-            {{ log.startTime }} - {{ log.endTime }} | {{ log.app }} ({{ log.duration }})
-          </li>
-        </ul>
-        <button class="close-btn" @click="showHistory = false">Cerrar historial</button>
+    <!-- Contenedor de grupo: franja delgada con ≥2 filas sueltas, cabecera
+         editable en cuanto recibe su primera fila (D-7). Un solo contenedor
+         activo a la vez — el modelo (`groupId` por fila) soporta N grupos,
+         el límite es de esta interfaz. -->
+    <div v-if="showGroupContainer" class="group-container">
+      <div v-if="dragGrouped.length === 0" class="group-strip">
+        Arrastrá aquí para agrupar
       </div>
+      <div v-else class="group-header">
+        <input
+          v-if="editingGroupName"
+          ref="groupNameInput"
+          v-model="draftGroupName"
+          class="group-name-input"
+          @keyup.enter="confirmGroupName"
+          @keyup.esc="cancelGroupName"
+          @blur="cancelGroupName"
+          @click.stop
+        />
+        <span v-else class="group-name" @click="startEditGroupName">
+          {{ activeGroupName || 'Grupo sin nombre' }}
+        </span>
+      </div>
+      <draggable
+        v-model="dragGrouped"
+        class="drag-list"
+        group="monitored-rows"
+        item-key="appId"
+        @start="isDragging = true"
+        @end="isDragging = false"
+        @change="onGroupDragChange"
+      >
+        <template #item="{ element }">
+          <AppRow
+            :row="element"
+            :icon="monitoredApps.icons[element.exePath]"
+            @stop="monitoredApps.stopRow(element.appId)"
+          />
+        </template>
+      </draggable>
     </div>
 
+    <AppSelectorModal v-if="showSelector" @close="showSelector = false" />
   </div>
 </template>
 
@@ -51,6 +93,7 @@
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faPlus, faBars } from '@fortawesome/free-solid-svg-icons'
 import { library } from '@fortawesome/fontawesome-svg-core'
+import draggable from 'vuedraggable'
 import { useMonitoredAppsStore } from '@/stores/monitoredApps'
 import AppRow from '@/components/AppRow.vue'
 import AppSelectorModal from '@/components/AppSelectorModal.vue'
@@ -60,12 +103,28 @@ library.add(faPlus, faBars)
 
 export default {
   name: 'CronometroComponent',
-  components: { FontAwesomeIcon, AppRow, AppSelectorModal },
+  components: { FontAwesomeIcon, AppRow, AppSelectorModal, draggable },
   data() {
     return {
       monitoredApps: useMonitoredAppsStore(),
       showSelector: false, // Mostrar AppSelectorModal
+      // Grupos por arrastre (D-7): arrays locales derivados del snapshot,
+      // nunca la fuente de verdad — el main lo es (ADR-0002).
+      dragUngrouped: [],
+      dragGrouped: [],
+      activeGroupId: null,
+      activeGroupName: null,
+      isDragging: false,
+      editingGroupName: false,
+      draftGroupName: '',
     }
+  },
+  computed: {
+    // La franja aparece con ≥2 filas sueltas; la cabecera (con miembros) se
+    // sostiene sola aunque el listado suelto baje de 2.
+    showGroupContainer() {
+      return this.dragGrouped.length > 0 || this.dragUngrouped.length >= 2
+    },
   },
   created() {
     this.monitoredApps.init()
@@ -73,11 +132,53 @@ export default {
   watch: {
     'monitoredApps.rows'(rows) {
       rows.forEach((row) => this.monitoredApps.ensureIcon(row.exePath))
+
+      // Guarda `isDragging` (D-7): un snapshot llegando en medio de un
+      // arrastre no debe pisar los arrays locales que `vuedraggable` está
+      // mutando en ese instante — la reconstrucción pendiente se aplica
+      // recién cuando el gesto termina (`@end`).
+      if (this.isDragging) return
+
+      this.dragUngrouped = rows.filter((row) => !row.groupId)
+      const grouped = rows.filter((row) => row.groupId)
+      this.dragGrouped = grouped
+      this.activeGroupId = grouped.length > 0 ? grouped[0].groupId : null
+      this.activeGroupName = grouped.length > 0 ? grouped[0].groupName : null
     },
   },
   methods: {
     openHistoryWindow() {
       ipcRenderer.send('open-history-window')
+    },
+    // onUngroupedDragChange/onGroupDragChange traducen el gesto a una
+    // intención (D-7): `evt.added` en la lista destino es lo único que
+    // importa — el `evt.removed` de la lista origen del mismo gesto no
+    // necesita acción propia, ya cubierto por el `added` de la otra lista.
+    onUngroupedDragChange(evt) {
+      if (!evt.added) return
+      this.monitoredApps.setRowGroup(evt.added.element.appId, null)
+    },
+    onGroupDragChange(evt) {
+      if (!evt.added) return
+      const groupId = this.activeGroupId || this.generateGroupId()
+      this.monitoredApps.setRowGroup(evt.added.element.appId, groupId)
+    },
+    generateGroupId() {
+      return `group-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    },
+    startEditGroupName() {
+      this.draftGroupName = this.activeGroupName || ''
+      this.editingGroupName = true
+      this.$nextTick(() => this.$refs.groupNameInput && this.$refs.groupNameInput.focus())
+    },
+    confirmGroupName() {
+      if (this.activeGroupId) {
+        this.monitoredApps.renameGroup(this.activeGroupId, this.draftGroupName)
+      }
+      this.editingGroupName = false
+    },
+    cancelGroupName() {
+      this.editingGroupName = false
     },
   },
 }
@@ -156,56 +257,43 @@ export default {
   color: #f0f0f0;
 }
 
-/* Estilos del modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
+.drag-list {
   width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.5);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
-.modal-content {
-  background-color: #444;
-  color: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  width: 300px;
-  max-height: 80%;
-  overflow-y: auto;
-  outline: none;
+
+.group-container {
+  width: 100%;
+  margin-top: 0.4rem;
+  border: 1px dashed rgba(240, 240, 240, 0.3);
+  border-radius: 6px;
 }
-.modal-content h3 {
-  margin-top: 0;
+
+.group-strip {
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  color: rgba(240, 240, 240, 0.6);
   text-align: center;
 }
-.modal-content ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+
+.group-header {
+  padding: 0.3rem 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px 6px 0 0;
 }
-.modal-content li {
-  padding: 8px;
-  cursor: pointer;
+
+.group-name {
+  font-size: 0.85rem;
+  color: #f0f0f0;
+  cursor: text;
 }
-.modal-content li:hover {
-  background-color: rgba(255,255,255,0.3);
-}
-.close-btn {
-  margin-top: 10px;
+
+.group-name-input {
+  font: inherit;
+  font-size: 0.85rem;
   width: 100%;
-  background: #222;
+  box-sizing: border-box;
   border: none;
-  color: #fff;
-  padding: 8px;
-  cursor: pointer;
-  border-radius: 4px;
-}
-.close-btn:hover {
-  background: #333;
+  border-radius: 2px;
+  padding: 0 2px;
 }
 </style>
