@@ -1,7 +1,6 @@
-// Registro único de todos los canales IPC del motor de monitoreo y de
-// Opciones. `background.js` invoca `registerIpcHandlers(mainWindow)` una sola
-// vez (Tarea 16). Los canales de íconos (Tarea 22) y de instaladas (Tarea 27)
-// se suman acá en bloques posteriores del mismo cambio.
+// Registro único de todos los canales IPC del motor de monitoreo, íconos,
+// instaladas y Opciones. `background.js` invoca `registerIpcHandlers(mainWindow)`
+// una sola vez (Tarea 16).
 'use strict'
 
 const path = require('path')
@@ -9,6 +8,7 @@ const { app, ipcMain } = require('electron')
 const monitorEngine = require('./monitor-engine.js')
 const jsonStore = require('./json-store.js')
 const iconCache = require('./icon-cache.js')
+const installedApps = require('./installed-apps.js')
 
 function getSettingsFilePath() {
   return path.join(app.getPath('userData'), 'settings.json')
@@ -36,6 +36,12 @@ function registerIpcHandlers(mainWindow) {
   ipcMain.handle('get-app-icon', (event, exePath) =>
     iconCache.getIcon(exePath).then((dataUrl) => ({ exePath, dataUrl }))
   )
+
+  // installed-apps.js empuja 'installed-apps-updated' directamente sobre
+  // `mainWindow.webContents` (Tarea 26); acá solo se le pasa la referencia,
+  // mismo patrón que el motor de monitoreo con `onUpdate`.
+  installedApps.setMainWindow(mainWindow)
+  ipcMain.handle('get-installed-apps', () => installedApps.getInstalledApps())
 
   ipcMain.handle('get-settings', () => jsonStore.readJson(getSettingsFilePath(), defaultSettings))
 
