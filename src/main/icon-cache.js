@@ -12,6 +12,31 @@ const platform = require('./platform-windows.js')
 const memoryCache = new Map()
 let fallbackDataUrlCache = null
 
+// Cola de escrituras a disco (fix S1, judgment-fixes-iteration-1). `getIcon`
+// separa lectura y escritura del archivo de caché con un `await` de por
+// medio (la extracción del ícono); con 2+ extracciones en vuelo —el caso
+// típico al arrancar con varios programas ya abiertos, Vue dispara
+// `ensureIcon` para cada fila en un `forEach` síncrono— cada escritura
+// pisaría el archivo completo con el estado que leyó *antes* de esperar,
+// perdiendo las claves que otra extracción concurrente ya había escrito.
+// Encolar la escritura real (lectura+merge+escritura, todo síncrono, sin
+// `await` de por medio) hace que cada una vea en disco el resultado de la
+// anterior. Mismo patrón de promesa encadenada que ya usa
+// `installed-apps.js` para deduplicar su enumeración en vuelo.
+let diskWriteQueue = Promise.resolve()
+
+// persistToDisk(key, dataUrl) — encola una escritura; lee el archivo recién
+// en el momento en que le toca el turno, no antes, para no perder entradas
+// escritas por escrituras encoladas previamente.
+function persistToDisk(key, dataUrl) {
+  diskWriteQueue = diskWriteQueue.then(() => {
+    const diskCache = jsonStore.readJson(getCacheFilePath(), {})
+    diskCache[key] = dataUrl
+    jsonStore.writeJson(getCacheFilePath(), diskCache)
+  })
+  return diskWriteQueue
+}
+
 function getCacheFilePath() {
   return path.join(app.getPath('userData'), 'app-icons-cache.json')
 }
@@ -59,8 +84,7 @@ async function getIcon(exePath) {
   const dataUrl = extracted || getFallbackDataUrl()
 
   memoryCache.set(key, dataUrl)
-  diskCache[key] = dataUrl
-  jsonStore.writeJson(getCacheFilePath(), diskCache)
+  await persistToDisk(key, dataUrl)
 
   return dataUrl
 }
