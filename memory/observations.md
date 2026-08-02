@@ -477,3 +477,112 @@ regresión transversales de `tasks.md` (detener/cerrar proceso con entradas `aut
 igual; el límite de 4 con y sin agrupar) — su equivalente a nivel de reductor puro ya se
 verificó en la etapa 3 (`reduceLifecycle` con entradas `auto`), pero el control transversal
 tal como está escrito pide la app real corriendo.
+
+## 2026-08-02 | finding | sessions-groups-history | sdd-verify: PASS, cero defectos, tres verificaciones que exceden lo ya documentado
+
+**Detectado por**: sdd-verify en `sessions-groups-history`, al cerrar la fase (ver
+`verify-report.md` para el detalle completo por spec y por punto de escrutinio).
+**Descripción**: se auditaron contra el código real (no solo se releyeron afirmaciones de
+`sdd-apply`) los 10 puntos de escrutinio marcados por fases previas — reductor con baja
+atómica, migración, `before-quit` sincrónico, batching de `persistToDisk`, guarda
+`isDragging`, deselección, confinamiento del bundle, fix de encoding, bug de zona horaria,
+remoción de `fluid-dnd` — y las 10 specs completas. Cero defectos de implementación. Tres
+verificaciones fueron más allá de lo que el entorno había permitido hasta ahora: (1) el
+comando PowerShell real de `listOpenWindows()`/`buildInstalledAppsScript()` corrido contra
+`powershell.exe` de esta máquina Windows vía interop, incluida una enumeración completa de 188
+accesos directos del Menú Inicio con el pipeline de filtro+dedup real (188→82, 0 nombres
+corruptos); (2) el batching de `persistToDisk` bajo concurrencia real fabricada (20
+extracciones con `setTimeout` variable, no un mock síncrono) — 1 escritura, 20 entradas; (3)
+`closeRow`/`closeAllRows`/`renameSession`/`setRowGroup` ejercitados end-to-end contra
+`monitor-engine.js`/`session-log.js` reales con `app.getPath` mockeado y disco real bajo el
+scratchpad, lo que permitió marcar 8 acceptance criteria que `sdd-apply` había dejado sin
+marcar por asumir que requerían Windows, cuando en realidad requerían disco real + las
+funciones del main process, ambos ejercitables sin Electron.
+**Hallazgo secundario (grafo de specs)**: 4 inconsistencias de metadata tipo "u debería
+declarar depends_on/related: [[s]]" (dirección `affects`, no auto-corregible por regla) — 3 de
+ellas en specs de un cambio ya cerrado (`app-detection-logos-audio`: `simultaneous-limit`,
+`empty-state`, `automatic-bw-icons` siguen con `depends_on: [[row-lifecycle]]`, el slug viejo,
+en vez de `[[row-lifecycle-persistence-by-type]]`) y 1 dentro de este mismo cambio
+(`sessions-json-persistence` no declara `deselect-from-saved-selection` de vuelta). No
+bloquean el archive — el slug viejo sigue resoluble vía `superseded_by`. Corrección aplicada
+(tipo auto-corregible, dirección `depends_on`): `automatic-bw-icons.affects` ahora incluye
+`[[selector-listing-icons]]`.
+**Promoción sugerida**: si un cambio futuro toca `app-monitoring`, actualizar el `depends_on`
+de `simultaneous-limit`/`empty-state`/`automatic-bw-icons` al slug vigente — requiere juicio
+(`depends_on` vs. `related`), no se auto-corrige.
+
+## 2026-08-02 | correction | sessions-groups-history | F1-F4 de sdd-judgment (iteración 1) corregidos
+
+**Fase**: sdd-apply (tras veredicto FAIL de sdd-judgment, iteración 1 de 2). Spec:
+`[[judgment-fixes-sessions-groups-history]]`. Detalle completo con evidencia en
+`changes/sessions-groups-history/judgment-report.md`.
+
+**F1 — `aggregateByApp` fusionaba programas migrados (`session-aggregate.js`, commit
+`bb8d3c4`)**. La clave de agrupación pasa de `entry.appId` desnudo a una que degrada al nombre
+del programa (`name:<app>`) cuando `appId` es `null` — el caso de las 32 entradas migradas
+reales de este entorno. Se agrega `key` a cada fila del agregador para que `ByAppView.vue`
+deje de usar `row.appId` (no único entre filas degradadas) como `:key` del `v-for`.
+`UsageChart.vue` no necesitó cambios: usa `row.app` como label, nunca `row.appId`.
+**Verificado con `aggregateByApp` real** sobre las 32 entradas migradas del `usage-log.txt` de
+producción de este entorno (copiado a scratchpad, nunca escrito en `/mnt/c`): control negativo
+contra `git show HEAD:src/utils/session-aggregate.js` reproduce exactamente la tabla del
+judgment-report (6/9 días fusionan programas, con las mismas duraciones erróneas); post-fix
+los 9 días separan cada programa con la suma de duración exacta y sin colisión de `key`.
+
+**F2 — `closeAllRows` no detenía el motor (`monitor-engine.js`, commit `ad7ca33`)**. Una línea:
+`stopEngine()` al inicio de `closeAllRows`. Sin ella, un `tick()` suspendido en el `await` de
+`getForegroundWindow()` durante `before-quit` resucitaba la fila desde `selection` al resumir,
+y un tick posterior con el proceso muerto escribía una segunda entrada para la misma sesión.
+**Verificado contra `monitor-engine.js` real, con el timer real** (sin tomar control manual de
+los ticks, para no invalidar la prueba): mock de `electron`/`platform-windows`/`session-
+log`/`json-store` por inyección directa en `require.cache`. Control negativo contra `git show
+HEAD:src/main/monitor-engine.js` reproduce la secuencia completa del judgment-report byte a
+byte (2 escrituras, la segunda vía `appendSession` para la fila resucitada); post-fix el
+conteo queda en 1 escritura incluso esperando 1.5s reales más allá del próximo intervalo — el
+`callCount` de `getForegroundWindow` confirma que ningún tick3 llegó a arrancar.
+
+**F3 — Historial reescrito sin atomicidad (`json-store.js`+`session-log.js`, commit
+`cfedccf`)**. Se agrega `writeJsonAtomic` (mismo patrón tmp+rename que `migrateLegacyLogAt`,
+ADR-0007) y solo `session-log.js::appendSessions` pasa a usarlo; `writeJson` queda intacto
+para el resto de los consumidores (selección, settings, cachés) — decisión explícita de
+alcance acotado, no DRY hacia una atomicidad universal que ningún otro consumidor necesita.
+Esto **revoca parcialmente** una alternativa que ADR-0007 había descartado por YAGNI
+asumiendo que el dato en riesgo era "una sesión, no el historial" — premisa incorrecta, porque
+`appendSessions` ya reescribía el archivo completo. Se agregó una nota de corrección inline en
+ADR-0007 (sección Alternatives Considered) apuntando a esta spec, siguiendo el mismo patrón de
+enmienda que ADR-0007 ya usa sobre ADR-0006.
+**Verificado simulando en disco el estado que deja una interrupción real** (no se puede matar
+a medias un `fs.writeFileSync` propio desde el mismo proceso Node): escritura truncada directa
+al destino lo corrompe entero (control, reproduce el riesgo que describía el judgment-report);
+la misma interrupción simulada durante la escritura del `.tmp` deja el destino intacto byte a
+byte con el contenido previo, y una `writeJsonAtomic` sin interrumpir publica el contenido
+nuevo completo.
+
+**F4 — Deduplicación de instaladas sin criterio de nombre (`installed-apps-filter.js`, commit
+`d5e14de`)**. Criterio elegido: nombre más corto gana la colisión (empate → primera
+aparición, igual que antes). Se descartó el criterio alternativo de patrones de sufijo
+("- Unicode", "- reset preferences...") por ser más frágil y requerir mantener una lista de
+patrones nueva; el nombre más corto resuelve los tres casos reales sin heurística adicional.
+**Verificado con el script PowerShell real de `buildInstalledAppsScript`** (sin modificarlo)
+contra la máquina Windows de este entorno vía interop WSL2 (`execFile` con argv en array, no
+`exec` con shell — `exec` sobre `/bin/sh` expande `$_`/`$root`/etc. del script de PowerShell
+como si fueran variables de shell antes de que `powershell.exe` las reciba, un artefacto del
+arnés de verificación en WSL2, no del código real que corre bajo `cmd.exe` en Windows): 188
+accesos directos crudos → 82 mostrados, mismo conteo que el judgment-report. Control negativo
+contra `git show HEAD:src/main/installed-apps-filter.js` reproduce los dos `MISMATCH` exactos
+del judgment-report (MySQL y VLC con el nombre de un acceso directo secundario); post-fix
+ambos muestran su nombre principal, y Python (que ya salía bien por azar del orden de
+enumeración) sigue mostrando `Python 3.12 (64-bit)`.
+
+**Pendiente de confirmar en Windows** (no ejecutable desde este entorno, mismo tipo de brecha
+que el resto del cambio): el flujo de punta a punta de F2 (antes-de-quit real de Electron, no
+simulado) y F1/F4 con la app real renderizando (en vez de las funciones puras invocadas
+directo).
+
+**Hallazgo adyacente, fuera de alcance**: varios artefactos de fases previas de este mismo
+cambio (`proposal.md`, `design.md`, `exploration.md`, `tech-context.md`, `clarifications.md`,
+`verify-report.md`, `judgment-report.md`, ADRs 0007-0010) existen en el worktree pero nunca se
+commitearon — el código que documentan sí está commiteado (ver `git log`), la documentación
+que lo respalda no. No se resuelve acá: excede el alcance de "exactamente los 4 defectos" del
+despacho, y tocar ese backlog de commits mezclaría objetivos de fases no relacionadas con esta.
+Candidato a resolver en `sdd-archive` o en un `chore(sdd)` dedicado antes de cerrar el cambio.
