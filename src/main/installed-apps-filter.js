@@ -55,8 +55,24 @@ function shouldDiscard(entry) {
 }
 
 // filterInstalledApps(rawEntries) → InstalledApp[]
-// Deduplica por appId conservando la primera aparición (un mismo ejecutable
-// puede tener más de un acceso directo apuntándole).
+// Deduplica por appId (un mismo ejecutable puede tener más de un acceso
+// directo apuntándole) conservando, de cada grupo de colisión, el candidato
+// de `name` más corto (fix F4, judgment-report iteración 1). El nombre más
+// corto es el criterio que resuelve correctamente los tres casos reales
+// verificados contra la máquina de este entorno:
+//   MySQL: "MySQL 8.0 Command Line Client - Unicode" (32) pierde contra
+//          "MySQL 8.0 Command Line Client" (30)
+//   VLC:   "VLC media player - reset preferences and cache files" (52) y
+//          "VLC media player skinned" (25) pierden contra
+//          "VLC media player" (17)
+//   Python: "Python 3.12 Module Docs (64-bit)" (33) pierde contra
+//           "Python 3.12 (64-bit)" (21)
+// En los tres, el acceso directo con el nombre principal del programa es
+// también el más corto: las variantes agregan un sufijo de herramienta
+// auxiliar ("- Unicode", "- reset preferences…", "Module Docs", "skinned"),
+// nunca lo acortan. El orden de salida no cambia: cada appId conserva la
+// posición de su primera aparición en `rawEntries`, solo cambia qué
+// candidato del grupo se muestra.
 function filterInstalledApps(rawEntries) {
   const apps = rawEntries
     .filter((entry) => !shouldDiscard(entry))
@@ -67,8 +83,24 @@ function filterInstalledApps(rawEntries) {
       publisher: entry.publisher || null,
     }))
 
-  const seen = new Set()
-  return apps.filter((app) => !seen.has(app.appId) && seen.add(app.appId))
+  const order = []
+  const winners = new Map()
+
+  apps.forEach((candidate) => {
+    const current = winners.get(candidate.appId)
+    if (!current) {
+      order.push(candidate.appId)
+      winners.set(candidate.appId, candidate)
+      return
+    }
+    // Empate de longitud → conserva el que ya ganaba (primera aparición),
+    // mismo desempate que tenía la deduplicación anterior.
+    if (candidate.name.length < current.name.length) {
+      winners.set(candidate.appId, candidate)
+    }
+  })
+
+  return order.map((appId) => winners.get(appId))
 }
 
 module.exports = { filterInstalledApps }
