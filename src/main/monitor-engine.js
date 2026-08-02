@@ -124,6 +124,9 @@ function reduceLifecycle(sLive, selection, rows) {
       elapsedMs: 0,
       sessionStartedAt: now,
       lastTickAt: now,
+      sessionName: null,
+      groupId: null,
+      groupName: null,
     })
   })
 
@@ -338,6 +341,70 @@ function closeRow(appId, motivo) {
   return removed
 }
 
+// ---------------------------------------------------------------------------
+// Nombre de sesión y grupo (D-3/ADR-0008): campos de la fila, no una entidad
+// aparte. Un grupo existe si y solo si hay al menos una fila con ese
+// `groupId`; su nombre es el `groupName` que comparten esas filas.
+// ---------------------------------------------------------------------------
+
+// renameSession(appId, name) — pone o cambia el nombre de la sesión de una
+// fila mientras está abierta.
+function renameSession(appId, name) {
+  const row = rows.find((r) => r.appId === appId)
+  if (row) {
+    row.sessionName = name || null
+    notify()
+  }
+}
+
+// renameGroup(groupId, name) — escribe `groupName` en TODAS las filas del
+// grupo (no hay un único lugar donde vive el nombre: cada fila lo repite).
+function renameGroup(groupId, name) {
+  const groupName = name || null
+  let changed = false
+  rows.forEach((row) => {
+    if (row.groupId === groupId) {
+      row.groupName = groupName
+      changed = true
+    }
+  })
+  if (changed) notify()
+}
+
+// setRowGroup(appId, groupId) — traduce la intención del arrastre (D-7) a un
+// cambio de estado autoritativo. Con `groupId` truthy, la fila se suma al
+// grupo y hereda el `groupName` que ya tengan sus otras filas (o `null` si es
+// la primera — el nombre llega después, vía `renameGroup`). Con `groupId`
+// null/falsy, la fila sale de cualquier grupo.
+function setRowGroup(appId, groupId) {
+  const row = rows.find((r) => r.appId === appId)
+  if (!row) return
+
+  if (groupId) {
+    const sibling = rows.find((r) => r.groupId === groupId && r.appId !== appId)
+    row.groupId = groupId
+    row.groupName = sibling ? sibling.groupName : null
+  } else {
+    row.groupId = null
+    row.groupName = null
+  }
+
+  notify()
+}
+
+// closeAllRows(motivo) — cierre sincrónico de todas las filas abiertas
+// (D-4/ADR-0009), pensado para `before-quit`: una única llamada a
+// `appendSessions` (nunca un `forEach` con `appendSession` por fila), que
+// hace un único `jsonStore.writeJson` sincrónico — el trabajo entero entre
+// `before-quit` y la escritura en disco es síncrono, sin `await` ni callback
+// asíncrono de por medio.
+function closeAllRows(motivo) {
+  if (rows.length === 0) return
+  console.log(`Cierre de ${rows.length} fila(s) al salir (${motivo})`)
+  sessionLog.appendSessions(rows, new Date())
+  rows = []
+}
+
 // getSnapshot() — mensaje único de estado que viaja al renderer (D2).
 function getSnapshot() {
   return {
@@ -350,6 +417,9 @@ function getSnapshot() {
       elapsedMs: row.elapsedMs,
       sessionStartedAt: row.sessionStartedAt,
       type: row.type,
+      sessionName: row.sessionName,
+      groupId: row.groupId,
+      groupName: row.groupName,
     })),
     selection: selection.map((entry) => ({
       appId: entry.appId,
@@ -452,6 +522,9 @@ function addToSelection({ appId, name, exePath, imageName, type }) {
       elapsedMs: 0,
       sessionStartedAt: now,
       lastTickAt: now,
+      sessionName: null,
+      groupId: null,
+      groupName: null,
     })
   }
 
@@ -483,6 +556,10 @@ module.exports = {
   startEngine,
   stopEngine,
   closeRow,
+  closeAllRows,
+  renameSession,
+  renameGroup,
+  setRowGroup,
   getSnapshot,
   onUpdate,
   loadSelection,

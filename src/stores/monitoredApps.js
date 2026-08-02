@@ -39,6 +39,17 @@ export const useMonitoredAppsStore = defineStore('monitoredApps', {
       // suscripto más abajo.
       ipcRenderer.send('stop-monitored-row', appId)
     },
+    // Intenciones de nombre/grupo (Tarea 18): mismo patrón que `stopRow`, el
+    // efecto llega por el snapshot siguiente.
+    renameSession(appId, name) {
+      ipcRenderer.send('rename-session', appId, name)
+    },
+    renameGroup(groupId, name) {
+      ipcRenderer.send('rename-group', groupId, name)
+    },
+    setRowGroup(appId, groupId) {
+      ipcRenderer.send('set-row-group', appId, groupId)
+    },
     // ensureIcon(exePath) — pide el ícono si falta y lo cachea en `icons`
     // (canal `get-app-icon`, Tarea 22).
     //

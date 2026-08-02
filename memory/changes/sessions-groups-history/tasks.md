@@ -402,7 +402,7 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
 
 - [x] `choose()` evalúa `isSelected` antes que `limitReached`, y llama `removeApp` cuando
   corresponde.
-- [ ] La clase `disabled` no bloquea el click sobre filas ya seleccionadas cuando el límite
+- [x] La clase `disabled` no bloquea el click sobre filas ya seleccionadas cuando el límite
   está alcanzado.
 - [ ] Verificado a mano: desmarcar con el listado en el límite de 4 funciona.
 
@@ -504,12 +504,12 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   de B+C) para `g1`; `monthBounds('2026-08-15') → {from:'2026-08-01', to:'2026-08-31'}`;
   `monthBounds('2026-02-10') → {to:'2026-02-28'}`; `monthBounds('2028-02-10') → {to:'2028-02-29'}`.
 
-- [ ] `filterByInterval` incluye ambos extremos del rango.
-- [ ] `aggregateByApp` suma `durationMs` por `appId`/`app` y ordena descendente.
-- [ ] `buildDayTimeline` colapsa por `groupId` (suma de duraciones, nunca reloj de pared) y
+- [x] `filterByInterval` incluye ambos extremos del rango.
+- [x] `aggregateByApp` suma `durationMs` por `appId`/`app` y ordena descendente.
+- [x] `buildDayTimeline` colapsa por `groupId` (suma de duraciones, nunca reloj de pared) y
   ordena por el `startedAt` mínimo del bloque.
-- [ ] `monthBounds` resuelve correctamente 28, 29 (bisiesto), 30 y 31 días.
-- [ ] Verificado con `node -e` sin dependencias instaladas.
+- [x] `monthBounds` resuelve correctamente 28, 29 (bisiesto), 30 y 31 días.
+- [x] Verificado con `node -e` sin dependencias instaladas.
 
 ### Tarea 12: Parser puro del historial legado
 
@@ -560,12 +560,12 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   `endedAt - startedAt` de esa misma entrada da `78000` — confirma que `durationMs` viene del
   campo, no de la resta.
 
-- [ ] `parseLegacyLog` no requiere `electron` (solo, si acaso, `fs`/`path` del núcleo).
-- [ ] `durationMs` sale del campo `Duración`, nunca de `endedAt - startedAt`.
-- [ ] `startedAt` resta un día cuando `Inicio > Fin` (cruce de medianoche).
-- [ ] El literal `"null"` de `Aplicación` se conserva tal cual, sin convertir a `null`.
-- [ ] Líneas duplicadas exactas producen entradas separadas con `id` distinto.
-- [ ] Verificado contra la copia real: 32 entradas, 0 descartadas, los tres controles de
+- [x] `parseLegacyLog` no requiere `electron` (solo, si acaso, `fs`/`path` del núcleo).
+- [x] `durationMs` sale del campo `Duración`, nunca de `endedAt - startedAt`.
+- [x] `startedAt` resta un día cuando `Inicio > Fin` (cruce de medianoche).
+- [x] El literal `"null"` de `Aplicación` se conserva tal cual, sin convertir a `null`.
+- [x] Líneas duplicadas exactas producen entradas separadas con `id` distinto.
+- [x] Verificado contra la copia real: 32 entradas, 0 descartadas, los tres controles de
   arriba pasan.
 
 ### Tarea 13: Migración one-shot idempotente (`migrateLegacyLogAt`)
@@ -610,13 +610,13 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   posterior de `migrateLegacyLogAt` completa el paso 2 sin reprocesar el paso 1 (el
   `sessions.json` no cambia).
 
-- [ ] El original nunca se borra: solo se renombra a `.bak`.
-- [ ] El paso de escritura de `sessions.json` usa `.tmp` + `renameSync`, nunca escribe
+- [x] El original nunca se borra: solo se renombra a `.bak`.
+- [x] El paso de escritura de `sessions.json` usa `.tmp` + `renameSync`, nunca escribe
   directo sobre `sessionsPath`.
-- [ ] Los pasos 1 y 2 son independientes: una interrupción entre ambos se resuelve sola en la
+- [x] Los pasos 1 y 2 son independientes: una interrupción entre ambos se resuelve sola en la
   corrida siguiente.
-- [ ] Correr dos veces seguidas produce el mismo `sessions.json` (idempotencia verificada).
-- [ ] Verificado contra una copia real: 32 entradas migradas, `.bak` creado, original ausente.
+- [x] Correr dos veces seguidas produce el mismo `sessions.json` (idempotencia verificada).
+- [x] Verificado contra una copia real: 32 entradas migradas, `.bak` creado, original ausente.
 
 ### Tarea 14: `session-log.js` dueño de `sessions.json`
 
@@ -656,15 +656,15 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   Windows: cerrar una fila (■ o cierre de proceso) y confirmar que `sessions.json` gana una
   entrada nueva con el shape correcto y `date` en hora local (no UTC).
 
-- [ ] `sessions` vive en memoria, cargado una vez por `migrateLegacyLog()`.
-- [ ] `appendSessions(rows, endDate)` es la única función que escribe a disco, con una sola
+- [x] `sessions` vive en memoria, cargado una vez por `migrateLegacyLog()`.
+- [x] `appendSessions(rows, endDate)` es la única función que escribe a disco, con una sola
   llamada a `jsonStore.writeJson` por invocación (no una por fila).
-- [ ] `appendSession(row, endDate)` delega en `appendSessions([row], endDate)`.
-- [ ] `readSessions({from,to})` usa `filterByInterval` de `session-aggregate.js` y ordena por
+- [x] `appendSession(row, endDate)` delega en `appendSessions([row], endDate)`.
+- [x] `readSessions({from,to})` usa `filterByInterval` de `session-aggregate.js` y ordena por
   `startedAt`.
-- [ ] `listSessionDates()` devuelve fechas únicas.
-- [ ] `buildSessionLine` y todo `fs.appendFile` fueron eliminados del archivo.
-- [ ] `date` de cada entrada usa `formatDateYYYYMMDD`, nunca `toISOString()`.
+- [x] `listSessionDates()` devuelve fechas únicas.
+- [x] `buildSessionLine` y todo `fs.appendFile` fueron eliminados del archivo.
+- [x] `date` de cada entrada usa `formatDateYYYYMMDD`, nunca `toISOString()`.
 
 ### Tarea 15: Integración de la migración en el arranque + eliminación de `get-app-logs`
 
@@ -684,8 +684,8 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   después de este cambio con el `userData` real (o una copia) → `sessions.json` aparece con
   32 entradas, `usage-log.txt` se renombra a `.bak`.
 
-- [ ] `sessionLog.migrateLegacyLog()` corre antes que `monitorEngine.loadSelection()`.
-- [ ] El handler `get-app-logs` y su regex fueron eliminados de `background.js`.
+- [x] `sessionLog.migrateLegacyLog()` corre antes que `monitorEngine.loadSelection()`.
+- [x] El handler `get-app-logs` y su regex fueron eliminados de `background.js`.
 - [ ] Verificado en Windows (o vía interop sobre una copia): la migración corre en el primer
   arranque y deja `sessions.json` + `usage-log.txt.bak`.
 
@@ -708,10 +708,10 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   duración hasta ese instante. Repetir saliendo por `window-all-closed` (la otra ruta de
   salida que converge en `app.quit()`).
 
-- [ ] `closeAllRows(motivo)` registra todas las filas abiertas en una sola llamada a
+- [x] `closeAllRows(motivo)` registra todas las filas abiertas en una sola llamada a
   `appendSessions`.
-- [ ] `before-quit` invoca `closeAllRows('app-quit')`.
-- [ ] Confirmado por lectura: el camino completo de `before-quit` a la escritura en disco es
+- [x] `before-quit` invoca `closeAllRows('app-quit')`.
+- [x] Confirmado por lectura: el camino completo de `before-quit` a la escritura en disco es
   síncrono.
 - [ ] Verificado en Windows: salir con filas abiertas registra una entrada por fila, por las
   dos rutas de salida (bandeja y `window-all-closed`).
@@ -732,9 +732,9 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   ordenadas por `startedAt`; invocar `get-session-dates` y confirmar que devuelve las 9 fechas
   distintas que `design.md` V1 documentó para el log real.
 
-- [ ] `get-sessions` filtra por `{from, to}` usando `readSessions`.
-- [ ] `get-session-dates` devuelve fechas únicas usando `listSessionDates`.
-- [ ] Verificado contra el historial migrado: el filtro por rango y las fechas únicas son
+- [x] `get-sessions` filtra por `{from, to}` usando `readSessions`.
+- [x] `get-session-dates` devuelve fechas únicas usando `listSessionDates`.
+- [x] Verificado contra el historial migrado: el filtro por rango y las fechas únicas son
   correctos.
 
 ### Tarea 18: Metadata de sesión y grupo en el motor
@@ -778,11 +778,11 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   `setRowGroup` sobre dos filas con el mismo `groupId` y confirmar que ambas aparecen con
   `groupId`/`groupName` iguales en el snapshot.
 
-- [ ] `sessionName`/`groupId`/`groupName` existen en toda fila creada, con default `null`.
-- [ ] `getSnapshot()` expone los tres campos por fila.
-- [ ] `renameSession`, `renameGroup`, `setRowGroup` implementadas y exportadas.
-- [ ] Los tres canales IPC registrados como `send`/`on`.
-- [ ] Las tres acciones del store implementadas.
+- [x] `sessionName`/`groupId`/`groupName` existen en toda fila creada, con default `null`.
+- [x] `getSnapshot()` expone los tres campos por fila.
+- [x] `renameSession`, `renameGroup`, `setRowGroup` implementadas y exportadas.
+- [x] Los tres canales IPC registrados como `send`/`on`.
+- [x] Las tres acciones del store implementadas.
 - [ ] Verificado: renombrar una sesión y cerrarla persiste el nombre en `sessions.json`.
 
 ### Tarea 19: Nombre de sesión inline en la fila
@@ -806,7 +806,7 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   actual precargado.
 - [ ] Enter llama `renameSession` con el valor editado y cierra la edición.
 - [ ] Esc cierra la edición sin llamar `renameSession`.
-- [ ] Una fila sin `sessionName` se comporta igual que antes de este cambio.
+- [x] Una fila sin `sessionName` se comporta igual que antes de este cambio.
 
 ---
 

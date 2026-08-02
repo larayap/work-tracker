@@ -374,3 +374,29 @@ de 4), Tarea 9 (verificación end-to-end de agregar en "Solo esta vez" y reinici
 cronómetro con el programa manual abierto/cerrado), Tarea 10 (el marcador se distingue "de un
 vistazo" — la ausencia de desplazamiento de layout se verificó por lectura del CSS, `position:
 absolute` sobre un contenedor de tamaño fijo).
+
+## 2026-08-02 | unverifiable-in-env | Etapa 4 (persistencia estructurada) — escenarios que requieren Windows con la app corriendo
+
+**Detectado por**: sdd-apply en `sessions-groups-history`, al cerrar la etapa 4.
+**Descripción**: verificado en esta fase con `node -e` contra copias reales en el scratchpad
+(nunca el `userData` real): Tarea 11 (`session-aggregate.js`, los 4 casos exactos de
+`design.md`), Tarea 12 (`parseLegacyLog` contra los 32 líneas reales, incluida la línea
+`Aplicación: null` y las 3 duplicadas de Chrome), Tarea 13 (migración idempotente, incluido
+el corte a medio camino entre pasos 1 y 2), Tarea 17 (`get-sessions`/`get-session-dates`
+recompuestos sobre `sessions.json` migrado: abril 2025 da 10 entradas ordenadas por
+`startedAt`, 9 fechas únicas — coincide exactamente con V1 de `design.md`). Lint y build
+limpios en todo momento. Queda sin verificar en este entorno (requiere la app real corriendo
+en Windows, con IPC y disco reales):
+- Tarea 15: que el primer arranque real deje `sessions.json` con 32 entradas y
+  `usage-log.txt.bak` (la migración en sí ya se verificó de forma aislada en Tarea 13 sobre
+  una copia; falta el camino completo `background.js` → `session-log.js` con Electron real).
+- Tarea 16: que salir con 2+ filas abiertas registre una entrada por fila, por las dos rutas
+  de salida (bandeja y `window-all-closed`). El camino síncrono se confirmó por lectura
+  (ningún `await` entre `before-quit` y `jsonStore.writeJson`).
+- Tarea 18: que renombrar una fila y cerrarla persista `sessionName` en `sessions.json`, y que
+  `setRowGroup` sobre dos filas deje `groupId`/`groupName` iguales en el snapshot real.
+- Tarea 19: los tres escenarios de interacción (click abre edición, Enter confirma y el
+  snapshot lo refleja, Esc cancela) — requieren DOM real y teclado. La cuarta ("una fila sin
+  `sessionName` se ve igual que antes") sí se verificó por lectura: `displayName` es
+  `row.sessionName || row.name`, idéntico al `{{ row.name }}` anterior cuando `sessionName`
+  es `null`.
