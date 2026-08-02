@@ -398,7 +398,19 @@ function setRowGroup(appId, groupId) {
 // hace un único `jsonStore.writeJson` sincrónico — el trabajo entero entre
 // `before-quit` y la escritura en disco es síncrono, sin `await` ni callback
 // asíncrono de por medio.
+//
+// `stopEngine()` es parte necesaria del cierre (fix F2, judgment-report
+// iteración 1): sin ella, el timer sigue vivo y un `tick()` ya suspendido en
+// el `await` de `getForegroundWindow()` reanuda después de este cierre,
+// encuentra `rows` vacío pero `selection` intacta, y `reduceLifecycle`
+// resucita la fila desde la selección con la evidencia de vida de esa misma
+// muestra de foco — si el proceso monitoreado muere en un tick posterior,
+// `appendSession` escribe una segunda entrada para la misma sesión lógica.
+// Detener el timer acá cierra el camino completo, no solo la ventana: ningún
+// tick nuevo puede arrancar, y el que ya estaba en vuelo encuentra
+// `inFlight` sin relevancia porque no hay más ticks que lo sigan.
 function closeAllRows(motivo) {
+  stopEngine()
   if (rows.length === 0) return
   console.log(`Cierre de ${rows.length} fila(s) al salir (${motivo})`)
   sessionLog.appendSessions(rows, new Date())
