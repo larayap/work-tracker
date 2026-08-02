@@ -96,7 +96,7 @@ function listRunningProcesses() {
 // mismo que ya asume `parseTasklistCsv` para el resto de la correlación.
 function listOpenWindows() {
   return new Promise((resolve, reject) => {
-    const cmd = `powershell -Command "Get-Process | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object @{Name='appName'; Expression={ if ($_.Description) { $_.Description } else { $_.Name } }}, @{Name='exePath'; Expression={ $_.Path }}, @{Name='pid'; Expression={ $_.Id }}, @{Name='imageName'; Expression={ if ($_.Path) { [System.IO.Path]::GetFileName($_.Path) } else { $_.Name + '.exe' } }} | ConvertTo-Json"`
+    const cmd = `powershell -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Process | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object @{Name='appName'; Expression={ if ($_.Description) { $_.Description } else { $_.Name } }}, @{Name='exePath'; Expression={ $_.Path }}, @{Name='pid'; Expression={ $_.Id }}, @{Name='imageName'; Expression={ if ($_.Path) { [System.IO.Path]::GetFileName($_.Path) } else { $_.Name + '.exe' } }} | ConvertTo-Json"`
     exec(cmd, (error, stdout) => {
       if (error) return reject(error)
       try {
@@ -126,6 +126,7 @@ function listOpenWindows() {
 
 function buildInstalledAppsScript() {
   return [
+    '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8;',
     "$ErrorActionPreference = 'SilentlyContinue'",
     '$shell = New-Object -ComObject WScript.Shell',
     "$uninstallKeys = Get-ItemProperty 'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*','HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*','HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*' | Where-Object { $_.DisplayName }",

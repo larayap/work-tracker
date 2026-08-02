@@ -183,3 +183,453 @@ declarado también en el judgment-report):
 Ninguno de los dos fixes tocó lógica fuera de los archivos y funciones que
 señalaba el judgment-report; no se aprovechó la iteración para refactorizar
 nada adicional (alcance acotado explícito del despacho).
+
+## 2026-08-02 | debt-candidate | Modal de historial muerto en CronometroAplicacion.vue
+
+**Detectado por**: sdd-explore en `sessions-groups-history`
+**Ubicación**: `src/components/CronometroAplicacion.vue` líneas 33-45 (template) y 61-84 (script)
+**Descripción**: El template referencia `showHistory`, `selectedDate`, `filteredLogs` y
+`loadLogsForDate`, ninguno de los cuales existe en `data()`, `computed` ni `methods` del
+componente. El botón que abre el historial real (`openHistoryWindow()`, línea 79) envía
+`open-history-window` por IPC y abre la ventana separada de `src/history/HistoryView.vue` —
+funciona. El bloque `<div v-if="showHistory">` es un segundo modal de historial, inline,
+que nunca puede mostrarse (`showHistory` es siempre `undefined`, por lo tanto falsy) y
+duplica el propósito de la ventana real con una UI distinta (tabla plana con
+inicio/fin/duración por línea de log, sin agrupar). Es probable que sea un remanente de una
+implementación anterior a la ventana de historial separada. Este cambio (`sessions-groups-history`)
+toca tanto `CronometroAplicacion.vue` (punto 1, deselección) como el historial (puntos 5-6),
+así que es candidato a limpiar en el mismo cambio o a extraer como debt separado si no encaja
+en el alcance de `sdd-design`.
+**Promoción sugerida**: `sdd new remove-dead-history-modal --domain debt` (si `sdd-design` de
+este cambio decide no tocarlo directamente al modificar `CronometroAplicacion.vue`)
+
+## 2026-08-02 | architecture | Historial estructurado en sessions.json con migración one-shot
+
+Decisión: el historial pasa de `usage-log.txt` (texto plano + regex) a `sessions.json`
+estructurado, con lectura y escritura en un único módulo (`session-log.js`) y migración
+one-shot idempotente que publica por renombre y nunca borra el original.
+Justificación: tres campos nuevos escritos por el usuario o por el modelo de grupos
+(`sessionName`, `groupId`, `groupName`) y una consulta por rango arbitrario vuelven
+insostenible el formato de texto. Enmienda —no supersede— la cláusula de ADR-0006 que
+conservaba `usage-log.txt`; el resto de ADR-0006 sigue vigente y `sessions.json` lo obedece.
+ADR: [[0007-structured-sessions-json-with-one-shot-migration]]
+
+## 2026-08-02 | architecture | Sesiones y grupos como metadata sobre entradas, no entidades
+
+Decisión: `sessionName`, `groupId` y `groupName` son campos de la fila en memoria del main,
+copiados a la entrada del historial al cerrarse. No hay colección de grupos, ni archivo de
+grupos, ni total persistido: todo total de grupo es derivado (suma de duraciones del período).
+La pertenencia a un grupo viaja como intención al main; el renderer nunca es dueño de ese
+estado (ADR-0002).
+ADR: [[0008-sessions-and-groups-as-entry-metadata]]
+
+## 2026-08-02 | architecture | Selección tipada manual/auto con baja atómica en el reductor
+
+Decisión: campo `type` en `monitored-selection.json` (ausente = `auto`), y la baja de la
+entrada manual se resuelve **dentro de `reduceLifecycle`**, en el mismo paso que la baja de la
+fila y antes de evaluar altas. El reductor pasa a devolver `{ rows, selection, closed }` y
+sigue siendo puro. Resuelve por construcción el riesgo de probabilidad Alta de la propuesta
+(fila que renace en el mismo tick + sesión fantasma de 0-1s).
+ADR: [[0009-typed-selection-with-atomic-manual-removal]]
+
+## 2026-08-02 | architecture | Librería de gráficos confinada al bundle de historial
+
+Decisión: `chart.js@^4` + `vue-chartjs@^5` entran como dependencias nuevas, importadas
+exclusivamente desde `src/history/`. La ventana del cronómetro no carga código de graficado.
+Registro tree-shakable explícito, sin adaptador de fechas (el gráfico agrega por aplicación,
+no por fecha).
+ADR: [[0010-charting-library-confined-to-history-bundle]]
+
+## 2026-08-02 | bug | Historial consulta el día equivocado por la tarde (zona horaria)
+
+**Detectado por**: sdd-design en `sessions-groups-history` (validación V15)
+**Ubicación**: `src/history/HistoryView.vue:81` (`loadLogsForDate`)
+**Descripción**: filtra con `date.toISOString().split('T')[0]` (UTC) contra un campo `date`
+que `src/main/session-log.js` escribe en hora **local** vía `formatDateYYYYMMDD`. Verificado
+con `TZ=America/Santiago`: una fecha local del 2 de agosto a las 21:00 produce `2026-08-03`
+por `toISOString()`. Efecto observable: abrir la ventana de historial después de ~20:00 en
+Chile (UTC-4) consulta el día siguiente y muestra la lista vacía. Es **preexistente**, no
+introducido por este cambio.
+**Resolución**: entra en alcance de este cambio (D-10 de `design.md`): toda la ventana de
+historial pasa a usar `formatDateYYYYMMDD` como fuente única de la fecha. Sin esto, el
+criterio de aceptación "el gráfico coincide con la lista por aplicación" falla por la tarde.
+
+## 2026-08-02 | finding | Duplicados en el listado de instaladas: 11 appId, no 3
+
+**Detectado por**: sdd-design en `sessions-groups-history` (validación V8)
+**Descripción**: `sdd-explore` estimó 3 entradas duplicadas en `installed-apps-cache.json`
+(todas archivos de ayuda de WinRAR). El análisis completo del archivo real (106 entradas)
+encuentra **11 `appId` repetidos**, y alcanzan a ejecutables legítimos: Steam, VLC (×3),
+WinRAR, Cursor, Ollama, Python, wslg y MySQL. Tras el filtro `.exe` la deduplicación quita
+**9 filas**, no 3. Resultado del filtro completo verificado: 106 → 91 (`.exe`) → 82 (dedup).
+No cambia la decisión de alcance (la dedup ya estaba incluida), sí su magnitud e impacto
+percibido: el defecto afectaba programas que el usuario reconoce, no solo ruido.
+
+## 2026-08-02 | debt-candidate | Modal de historial muerto: RESUELTO en este cambio
+
+**Actualización de la observación del 2026-08-02 (sdd-explore)**: el modal muerto de
+`CronometroAplicacion.vue` (template 33-45) entra en alcance de `sessions-groups-history` y se
+elimina en la etapa 5 (D-10 de `design.md`). Razón: este cambio ya reescribe ese componente
+para el drag & drop de grupos, y el modal consume el canal `get-app-logs`, que D-9 elimina —
+dejarlo sería dejar código muerto apuntando a un canal inexistente. **No hace falta promover
+`remove-dead-history-modal` como cambio aparte.**
+
+## 2026-08-02 | env-quirk | global | `node_modules` ausente en el worktree — bloquea `node -e` sobre cualquier archivo que haga `require('electron')` en su nivel superior
+
+**Detectado por**: sdd-tasks en `sessions-groups-history`, al diseñar los criterios de
+completado de la migración de historial.
+**Descripción**: este worktree no tiene `node_modules` instalado. Cualquier módulo que haga
+`require('electron')` en el nivel superior del archivo (`monitor-engine.js`,
+`session-log.js`, `icon-cache.js`, `installed-apps.js`) falla con `MODULE_NOT_FOUND` al
+requerirlo con `node -e` plano, **incluso si la función que se quiere probar es pura y no usa
+`electron`** — el error ocurre al cargar el módulo, antes de llamar nada. Es preexistente a
+este cambio (ya afectaba a `reduceLifecycle`/`reduceFocus`, que `design.md` de
+`app-detection-logos-audio` ya documentaba como "verificables a mano" sin precisar el motivo).
+Con `npm install` corrido una vez, `require('electron')` fuera del runtime de Electron
+devuelve un string inofensivo en vez de lanzar, y el problema desaparece.
+**Mitigación aplicada en `sessions-groups-history`**: los módulos puros nuevos
+(`src/utils/session-aggregate.js`, `src/main/session-log-parser.js`) se diseñaron sin
+ninguna dependencia de `npm` (solo `fs`/`path` del núcleo de Node), precisamente para que la
+verificación con `node -e` no dependa de si `npm install` ya corrió. Ver `tasks.md` de este
+cambio, sección "Refinamiento respecto de `design.md`", para el detalle completo.
+**Promoción sugerida**: si esto sigue mordiendo verificaciones futuras, considerar un
+`sdd new document-electron-require-quirk --domain debt` que deje esta convención (separar
+lógica pura de módulos que requieren `electron`) explícita en `_profile.md`.
+
+## 2026-08-02 | env-fix | package.json | Dependencia muerta `fluid-dnd` bloqueaba `npm install` por completo — removida
+
+**Detectado por**: sdd-apply en `sessions-groups-history`, etapa 1, al intentar `npm install`
+para poder correr ESLint/build y los `node -e` de Tarea 7 que requieren `require('electron')`
+resuelto.
+**Descripción**: `package.json` declaraba `"fluid-dnd": "file:../draggapleFluid/fluid-dnd/fluid-dnd-1.3.3-beta.0.tgz"`
+apuntando a un archivo fuera del repo que no existe en este entorno (`_profile.md` ya lo
+señalaba como dependencia muerta y de reproducibilidad frágil, sin ninguna referencia en
+`src/`, junto con `@shopify/draggable`). `npm install` fallaba con `ENOENT` sobre esa ruta —
+bloqueo total, no solo de esta dependencia: sin `node_modules` no corre ESLint (`vue-cli-service
+lint` depende de plugins locales), no corre el build, y no se puede ejercitar
+`reduceLifecycle`/`reduceFocus` de `monitor-engine.js` con `node -e` (requieren `electron`
+resuelto, ver observación `env-quirk` anterior).
+**Acción tomada**: se removió la línea `fluid-dnd` de `dependencies` en `package.json` (grep
+confirmó cero referencias en `src/`) y se corrió `npm install`, que resolvió y actualizó
+`package-lock.json` en consecuencia. `@shopify/draggable` se dejó intacto — no bloqueaba el
+install y removerlo excede el alcance de `tasks.md`.
+**Riesgo**: es un cambio fuera de las 26 tareas de `tasks.md`, hecho por necesidad de
+infraestructura (sin él, la mitad de los criterios de completado de este cambio no son
+verificables). No afecta comportamiento observable de la aplicación.
+**Promoción sugerida**: `sdd new remove-dead-dnd-dependencies --domain debt` para evaluar
+remover también `@shopify/draggable` de forma prolija (con su propio commit y verificación),
+en vez de que quede como acción incidental de un cambio no relacionado.
+
+## 2026-08-02 | unverifiable-in-env | Etapa 2 (íconos del selector) — escenarios que requieren Windows con la app corriendo
+
+**Detectado por**: sdd-apply en `sessions-groups-history`, al cerrar la etapa 2.
+**Descripción**: `icon-cache.js` usa `electron.nativeImage`/`app.getPath` y
+`AppSelectorModal.vue`/`monitoredApps.js::ensureIcons` dependen de IPC real y del store
+Pinia — ninguno de los dos es verificable con `node -e` sin Windows, tal como ya lo señala
+`design.md` (Escenario 7 de la Estrategia de Testing). Lo verificado en esta fase: lint y
+build limpios; el patrón de pool de concurrencia acotada a 6 replicado y simulado de forma
+aislada (`node -e` con un mock async) confirma que el máximo simultáneo nunca supera 6 sobre
+25 ítems fabricados. Queda sin verificar en este entorno: que una tanda real de N íconos
+nuevos produzca una sola escritura de `app-icons-cache.json` (Tarea 4, checkbox de
+verificación manual) y los tres escenarios de `selector-listing-icons` con la app abierta en
+Windows (ícono real o respaldo por entrada, sin demora perceptible, sin repetir extracción en
+aperturas siguientes).
+
+## 2026-08-02 | env-quirk | verificación | `path.basename` sobre rutas Windows da resultado incorrecto al testear desde este host Linux/WSL
+
+**Detectado por**: sdd-apply en `sessions-groups-history`, al verificar la reconciliación de
+arranque de Tarea 7 (`loadSelection`/`isEntryAlive`) contra `monitored-selection.json` real.
+**Descripción**: `require('path').basename(...)` en Node.js selecciona las reglas
+posix/win32 según el **sistema operativo donde corre el proceso**, no según la forma de la
+ruta que recibe. Con una ruta estilo Windows (`C:\Program Files\...\chrome.exe`) corriendo
+`node -e` en este host Linux/WSL, `path.basename(...)` devuelve la ruta completa sin
+recortar (no hay separador `/` que reconocer), en vez de `chrome.exe`. En producción, la app
+corre en Electron sobre Windows, donde `require('path')` selecciona automáticamente las
+reglas win32 y el mismo código funciona correctamente — no es un bug de esta fase, es
+preexistente al patrón ya usado en `matchFocusedAppId` y en el descubrimiento condicionado
+de `tick()` (ambos ya usan `path.basename(sFocus.exePath)`/`path.basename(entry.exePath)`
+sin cambios de este cambio).
+**Mitigación aplicada en la verificación**: usar `require('path').win32` explícitamente al
+fabricar pruebas con rutas estilo Windows desde este entorno, en vez de `require('path')` a
+secas. Con ese ajuste, la reconciliación de arranque verificada contra
+`monitored-selection.json` real (Brave/Firefox/Chrome, ninguno con `type`) más un escenario
+fabricado (Brave→manual+muerto descartado, Firefox→auto+muerto permanece, Chrome→manual+vivo
+contra el `tasklist.exe` real permanece) da el resultado esperado en los tres casos.
+**Promoción sugerida**: si `sdd-verify` repite esta clase de verificación, usar `path.win32`
+para evitar un falso negativo que parezca un bug de `isEntryAlive`/`matchFocusedAppId` cuando
+en realidad es un artefacto de correr node en el host Linux en vez de en el Windows real.
+
+## 2026-08-02 | unverifiable-in-env | Etapa 3 (selección tipada, deselección, marcador visual) — escenarios que requieren Windows con la app corriendo
+
+**Detectado por**: sdd-apply en `sessions-groups-history`, al cerrar la etapa 3.
+**Descripción**: verificado en esta fase con `node -e` y entradas fabricadas: los tres
+escenarios de `reduceLifecycle` del criterio de Tarea 7 (carrera resuelta, misma referencia
+sin cierres, auto permanece), la reconciliación de arranque contra `monitored-selection.json`
+real + `tasklist.exe` real (manual muerto descartado, auto muerto intacto, manual vivo
+permanece — con la salvedad de `path.win32` para simular Windows desde este host, ver
+observación `env-quirk` anterior), y los controles de no regresión (auto/legacy sin `type`
+permanecen en `selection`). Lint y build limpios. Queda sin verificar en este entorno
+(requiere la app real corriendo en Windows): Tarea 8 (desmarcar con el listado en el límite
+de 4), Tarea 9 (verificación end-to-end de agregar en "Solo esta vez" y reiniciar el
+cronómetro con el programa manual abierto/cerrado), Tarea 10 (el marcador se distingue "de un
+vistazo" — la ausencia de desplazamiento de layout se verificó por lectura del CSS, `position:
+absolute` sobre un contenedor de tamaño fijo).
+
+## 2026-08-02 | unverifiable-in-env | Etapa 4 (persistencia estructurada) — escenarios que requieren Windows con la app corriendo
+
+**Detectado por**: sdd-apply en `sessions-groups-history`, al cerrar la etapa 4.
+**Descripción**: verificado en esta fase con `node -e` contra copias reales en el scratchpad
+(nunca el `userData` real): Tarea 11 (`session-aggregate.js`, los 4 casos exactos de
+`design.md`), Tarea 12 (`parseLegacyLog` contra los 32 líneas reales, incluida la línea
+`Aplicación: null` y las 3 duplicadas de Chrome), Tarea 13 (migración idempotente, incluido
+el corte a medio camino entre pasos 1 y 2), Tarea 17 (`get-sessions`/`get-session-dates`
+recompuestos sobre `sessions.json` migrado: abril 2025 da 10 entradas ordenadas por
+`startedAt`, 9 fechas únicas — coincide exactamente con V1 de `design.md`). Lint y build
+limpios en todo momento. Queda sin verificar en este entorno (requiere la app real corriendo
+en Windows, con IPC y disco reales):
+- Tarea 15: que el primer arranque real deje `sessions.json` con 32 entradas y
+  `usage-log.txt.bak` (la migración en sí ya se verificó de forma aislada en Tarea 13 sobre
+  una copia; falta el camino completo `background.js` → `session-log.js` con Electron real).
+- Tarea 16: que salir con 2+ filas abiertas registre una entrada por fila, por las dos rutas
+  de salida (bandeja y `window-all-closed`). El camino síncrono se confirmó por lectura
+  (ningún `await` entre `before-quit` y `jsonStore.writeJson`).
+- Tarea 18: que renombrar una fila y cerrarla persista `sessionName` en `sessions.json`, y que
+  `setRowGroup` sobre dos filas deje `groupId`/`groupName` iguales en el snapshot real.
+- Tarea 19: los tres escenarios de interacción (click abre edición, Enter confirma y el
+  snapshot lo refleja, Esc cancela) — requieren DOM real y teclado. La cuarta ("una fila sin
+  `sessionName` se ve igual que antes") sí se verificó por lectura: `displayName` es
+  `row.sessionName || row.name`, idéntico al `{{ row.name }}` anterior cuando `sessionName`
+  es `null`.
+
+## 2026-08-02 | unverifiable-in-env | Etapa 5 (grupos por arrastre) — requiere Windows con mouse real
+
+**Detectado por**: sdd-apply en `sessions-groups-history`, al cerrar la etapa 5.
+**Descripción**: drag & drop no es verificable con `node -e` ni con interop (requiere eventos
+de mouse reales sobre un DOM renderizado). Verificado en esta fase: lint y build limpios; por
+lectura, los dos `<draggable group="monitored-rows">` están sobre `dragUngrouped`/`dragGrouped`
+derivados del `watch` con la guarda `isDragging`; `onUngroupedDragChange`/`onGroupDragChange`
+solo actúan sobre `evt.added` (nunca `evt.removed`), traduciendo el gesto a
+`setRowGroup(appId, groupId | null)`; el bloque del modal de historial muerto y toda
+referencia a `showHistory`/`filteredLogs`/`loadLogsForDate` se confirmaron ausentes por
+`grep`. Queda sin verificar en este entorno: agrupar, desagrupar, que un grupo vacío
+desaparezca, y que un arrastre sostenido >1s no se rompa con un snapshot llegando en medio
+(la guarda `isDragging` está implementada pero su efecto solo se observa con un timer real de
+1000ms y un gesto de mouse real).
+
+## 2026-08-02 | design-gap-fixed | vue.config.js | ADR-0010 asumía confinamiento que el build por defecto no daba — corregido en sdd-apply
+
+**Detectado por**: sdd-apply en `sessions-groups-history`, etapa 6a, al inspeccionar el build
+tras agregar `chart.js`/`vue-chartjs`.
+**Descripción**: `design.md`/ADR-0010 afirman que, por tener `history` como página separada de
+`index` en `vue.config.js`, "lo que se importe desde la ventana de historial no entra al
+bundle de la ventana del cronómetro" — verificado solo leyendo la configuración de páginas, no
+el output real del build. El `splitChunks` por defecto de `vue-cli-service`
+(`node_modules/@vue/cli-service/lib/config/app.js`) usa un único `cacheGroup` con
+`test: /node_modules/` y `name: 'chunk-vendors'` fijo, sin distinguir por entrada: **todo**
+node_modules de **ambas** páginas termina en el mismo archivo, que `index.html` también carga.
+Confirmado con el build real: tras agregar las dependencias, `chunk-vendors.js` pasó de 513 KiB
+a 699 KiB, y `dist/index.html` (la ventana del cronómetro, siempre abierta) referenciaba ese
+archivo — violación directa de la invariante que el ADR fija como "la que hay que sostener".
+**Acción tomada**: `vue.config.js` gana un `chainWebpack` que separa `chart.js`/`vue-chartjs`
+en su propio `cacheGroup` (`chunk-chart-vendors`), y `pages.history.chunks` lo agrega
+explícitamente mientras `pages.index.chunks` lo excluye. Verificado tras la corrección:
+`chunk-vendors.js` vuelve a 522 KiB (la línea base sin chart.js), `chunk-chart-vendors.js`
+(177 KiB) existe aparte, `dist/index.html` no lo referencia y `dist/history.html` sí; grep de
+la firma `Chart.js v...` da 8 matches en `chunk-chart-vendors.js` y 0 en `chunk-vendors.js`.
+**Riesgo**: es una corrección de infraestructura de build fuera de las 26 tareas de
+`tasks.md`, necesaria para que el comportamiento real cumpla lo que el ADR de esta misma fase
+declara. No afecta ningún acceptance criteria de las specs (es la condición para que
+`charting-library-confined-to-history-bundle` sea cierto, no un requisito propio).
+
+## 2026-08-02 | unverifiable-in-env | Etapa 6a (historial: vistas + gráfico del día) — requiere Windows con la ventana de historial abierta
+
+**Detectado por**: sdd-apply en `sessions-groups-history`, al cerrar la etapa 6a.
+**Descripción**: verificado en esta fase: lint y build limpios; la corrección de zona horaria
+V15 reproducida y confirmada con `TZ=America/Santiago node -e` (`formatDateYYYYMMDD` da
+`2026-08-02` a las 21:30 hora de Chile, `toISOString().split('T')[0]` da `2026-08-03` —
+confirma el bug viejo y la corrección nueva); ningún componente de presentación
+(`ByAppView`/`BySessionView`/`UsageChart`) hace IPC propio (grep sin resultados); el
+confinamiento del bundle de gráficos, corregido y verificado (ver observación
+`design-gap-fixed` de esta misma fecha). Queda sin verificar en este entorno (requiere
+Electron real, IPC real y un canvas renderizado): que el calendario muestre los puntos
+correctos al hacer click, que `ByAppView` reproduzca visualmente la tabla anterior, que
+`BySessionView` muestre el orden cronológico correcto con grupos como bloque, y que
+`UsageChart` renderice barras legibles con scroll cuando hay más aplicaciones de las que
+caben.
+
+## 2026-08-02 | unverifiable-in-env | Etapa 6b (alcance mes/rango) y controles de no regresión finales — requieren Windows con la app corriendo
+
+**Detectado por**: sdd-apply en `sessions-groups-history`, al cerrar la etapa 6b (última etapa
+del cambio).
+**Descripción**: verificado en esta fase con `node -e`, reproduciendo exactamente la lógica de
+`chartInterval`/`chartLabel` de `HistoryView.vue`: alcance día → `{from:'2026-08-15',
+to:'2026-08-15'}` con rótulo "15 ago 2026"; mes → `monthBounds` da
+`{from:'2026-08-01', to:'2026-08-31'}` con rótulo "Agosto 2026"; rango 12→19 agosto da
+`{from:'2026-08-12', to:'2026-08-19'}` con rótulo "12–19 ago" — los tres coinciden con los
+ejemplos exactos de `design.md`. Lint y build limpios; el confinamiento del bundle de
+gráficos (observación anterior) se re-verificó tras esta etapa y sigue intacto. Por lectura:
+`dayEntries` (que alimenta `ByAppView`/`BySessionView`) depende solo de `selectedDate`, nunca
+de `chartScope` — las dos listas no pueden cambiar cuando cambia el alcance del gráfico.
+Queda sin verificar en este entorno (requiere Electron real con `<v-date-picker>` renderizado
+y datos reales de más de un día): que elegir mes o rango en la app real muestre los totales
+correctos con las listas ancladas al día. También quedan sin cerrar los dos controles de no
+regresión transversales de `tasks.md` (detener/cerrar proceso con entradas `auto` sigue
+igual; el límite de 4 con y sin agrupar) — su equivalente a nivel de reductor puro ya se
+verificó en la etapa 3 (`reduceLifecycle` con entradas `auto`), pero el control transversal
+tal como está escrito pide la app real corriendo.
+
+## 2026-08-02 | finding | sessions-groups-history | sdd-verify: PASS, cero defectos, tres verificaciones que exceden lo ya documentado
+
+**Detectado por**: sdd-verify en `sessions-groups-history`, al cerrar la fase (ver
+`verify-report.md` para el detalle completo por spec y por punto de escrutinio).
+**Descripción**: se auditaron contra el código real (no solo se releyeron afirmaciones de
+`sdd-apply`) los 10 puntos de escrutinio marcados por fases previas — reductor con baja
+atómica, migración, `before-quit` sincrónico, batching de `persistToDisk`, guarda
+`isDragging`, deselección, confinamiento del bundle, fix de encoding, bug de zona horaria,
+remoción de `fluid-dnd` — y las 10 specs completas. Cero defectos de implementación. Tres
+verificaciones fueron más allá de lo que el entorno había permitido hasta ahora: (1) el
+comando PowerShell real de `listOpenWindows()`/`buildInstalledAppsScript()` corrido contra
+`powershell.exe` de esta máquina Windows vía interop, incluida una enumeración completa de 188
+accesos directos del Menú Inicio con el pipeline de filtro+dedup real (188→82, 0 nombres
+corruptos); (2) el batching de `persistToDisk` bajo concurrencia real fabricada (20
+extracciones con `setTimeout` variable, no un mock síncrono) — 1 escritura, 20 entradas; (3)
+`closeRow`/`closeAllRows`/`renameSession`/`setRowGroup` ejercitados end-to-end contra
+`monitor-engine.js`/`session-log.js` reales con `app.getPath` mockeado y disco real bajo el
+scratchpad, lo que permitió marcar 8 acceptance criteria que `sdd-apply` había dejado sin
+marcar por asumir que requerían Windows, cuando en realidad requerían disco real + las
+funciones del main process, ambos ejercitables sin Electron.
+**Hallazgo secundario (grafo de specs)**: 4 inconsistencias de metadata tipo "u debería
+declarar depends_on/related: [[s]]" (dirección `affects`, no auto-corregible por regla) — 3 de
+ellas en specs de un cambio ya cerrado (`app-detection-logos-audio`: `simultaneous-limit`,
+`empty-state`, `automatic-bw-icons` siguen con `depends_on: [[row-lifecycle]]`, el slug viejo,
+en vez de `[[row-lifecycle-persistence-by-type]]`) y 1 dentro de este mismo cambio
+(`sessions-json-persistence` no declara `deselect-from-saved-selection` de vuelta). No
+bloquean el archive — el slug viejo sigue resoluble vía `superseded_by`. Corrección aplicada
+(tipo auto-corregible, dirección `depends_on`): `automatic-bw-icons.affects` ahora incluye
+`[[selector-listing-icons]]`.
+**Promoción sugerida**: si un cambio futuro toca `app-monitoring`, actualizar el `depends_on`
+de `simultaneous-limit`/`empty-state`/`automatic-bw-icons` al slug vigente — requiere juicio
+(`depends_on` vs. `related`), no se auto-corrige.
+
+## 2026-08-02 | correction | sessions-groups-history | F1-F4 de sdd-judgment (iteración 1) corregidos
+
+**Fase**: sdd-apply (tras veredicto FAIL de sdd-judgment, iteración 1 de 2). Spec:
+`[[judgment-fixes-sessions-groups-history]]`. Detalle completo con evidencia en
+`changes/sessions-groups-history/judgment-report.md`.
+
+**F1 — `aggregateByApp` fusionaba programas migrados (`session-aggregate.js`, commit
+`bb8d3c4`)**. La clave de agrupación pasa de `entry.appId` desnudo a una que degrada al nombre
+del programa (`name:<app>`) cuando `appId` es `null` — el caso de las 32 entradas migradas
+reales de este entorno. Se agrega `key` a cada fila del agregador para que `ByAppView.vue`
+deje de usar `row.appId` (no único entre filas degradadas) como `:key` del `v-for`.
+`UsageChart.vue` no necesitó cambios: usa `row.app` como label, nunca `row.appId`.
+**Verificado con `aggregateByApp` real** sobre las 32 entradas migradas del `usage-log.txt` de
+producción de este entorno (copiado a scratchpad, nunca escrito en `/mnt/c`): control negativo
+contra `git show HEAD:src/utils/session-aggregate.js` reproduce exactamente la tabla del
+judgment-report (6/9 días fusionan programas, con las mismas duraciones erróneas); post-fix
+los 9 días separan cada programa con la suma de duración exacta y sin colisión de `key`.
+
+**F2 — `closeAllRows` no detenía el motor (`monitor-engine.js`, commit `ad7ca33`)**. Una línea:
+`stopEngine()` al inicio de `closeAllRows`. Sin ella, un `tick()` suspendido en el `await` de
+`getForegroundWindow()` durante `before-quit` resucitaba la fila desde `selection` al resumir,
+y un tick posterior con el proceso muerto escribía una segunda entrada para la misma sesión.
+**Verificado contra `monitor-engine.js` real, con el timer real** (sin tomar control manual de
+los ticks, para no invalidar la prueba): mock de `electron`/`platform-windows`/`session-
+log`/`json-store` por inyección directa en `require.cache`. Control negativo contra `git show
+HEAD:src/main/monitor-engine.js` reproduce la secuencia completa del judgment-report byte a
+byte (2 escrituras, la segunda vía `appendSession` para la fila resucitada); post-fix el
+conteo queda en 1 escritura incluso esperando 1.5s reales más allá del próximo intervalo — el
+`callCount` de `getForegroundWindow` confirma que ningún tick3 llegó a arrancar.
+
+**F3 — Historial reescrito sin atomicidad (`json-store.js`+`session-log.js`, commit
+`cfedccf`)**. Se agrega `writeJsonAtomic` (mismo patrón tmp+rename que `migrateLegacyLogAt`,
+ADR-0007) y solo `session-log.js::appendSessions` pasa a usarlo; `writeJson` queda intacto
+para el resto de los consumidores (selección, settings, cachés) — decisión explícita de
+alcance acotado, no DRY hacia una atomicidad universal que ningún otro consumidor necesita.
+Esto **revoca parcialmente** una alternativa que ADR-0007 había descartado por YAGNI
+asumiendo que el dato en riesgo era "una sesión, no el historial" — premisa incorrecta, porque
+`appendSessions` ya reescribía el archivo completo. Se agregó una nota de corrección inline en
+ADR-0007 (sección Alternatives Considered) apuntando a esta spec, siguiendo el mismo patrón de
+enmienda que ADR-0007 ya usa sobre ADR-0006.
+**Verificado simulando en disco el estado que deja una interrupción real** (no se puede matar
+a medias un `fs.writeFileSync` propio desde el mismo proceso Node): escritura truncada directa
+al destino lo corrompe entero (control, reproduce el riesgo que describía el judgment-report);
+la misma interrupción simulada durante la escritura del `.tmp` deja el destino intacto byte a
+byte con el contenido previo, y una `writeJsonAtomic` sin interrumpir publica el contenido
+nuevo completo.
+
+**F4 — Deduplicación de instaladas sin criterio de nombre (`installed-apps-filter.js`, commit
+`d5e14de`)**. Criterio elegido: nombre más corto gana la colisión (empate → primera
+aparición, igual que antes). Se descartó el criterio alternativo de patrones de sufijo
+("- Unicode", "- reset preferences...") por ser más frágil y requerir mantener una lista de
+patrones nueva; el nombre más corto resuelve los tres casos reales sin heurística adicional.
+**Verificado con el script PowerShell real de `buildInstalledAppsScript`** (sin modificarlo)
+contra la máquina Windows de este entorno vía interop WSL2 (`execFile` con argv en array, no
+`exec` con shell — `exec` sobre `/bin/sh` expande `$_`/`$root`/etc. del script de PowerShell
+como si fueran variables de shell antes de que `powershell.exe` las reciba, un artefacto del
+arnés de verificación en WSL2, no del código real que corre bajo `cmd.exe` en Windows): 188
+accesos directos crudos → 82 mostrados, mismo conteo que el judgment-report. Control negativo
+contra `git show HEAD:src/main/installed-apps-filter.js` reproduce los dos `MISMATCH` exactos
+del judgment-report (MySQL y VLC con el nombre de un acceso directo secundario); post-fix
+ambos muestran su nombre principal, y Python (que ya salía bien por azar del orden de
+enumeración) sigue mostrando `Python 3.12 (64-bit)`.
+
+**Pendiente de confirmar en Windows** (no ejecutable desde este entorno, mismo tipo de brecha
+que el resto del cambio): el flujo de punta a punta de F2 (antes-de-quit real de Electron, no
+simulado) y F1/F4 con la app real renderizando (en vez de las funciones puras invocadas
+directo).
+
+**Hallazgo adyacente, fuera de alcance**: varios artefactos de fases previas de este mismo
+cambio (`proposal.md`, `design.md`, `exploration.md`, `tech-context.md`, `clarifications.md`,
+`verify-report.md`, `judgment-report.md`, ADRs 0007-0010) existen en el worktree pero nunca se
+commitearon — el código que documentan sí está commiteado (ver `git log`), la documentación
+que lo respalda no. No se resuelve acá: excede el alcance de "exactamente los 4 defectos" del
+despacho, y tocar ese backlog de commits mezclaría objetivos de fases no relacionadas con esta.
+Candidato a resolver en `sdd-archive` o en un `chore(sdd)` dedicado antes de cerrar el cambio.
+
+---
+
+## 2026-08-02 | finding | sessions-groups-history | sdd-judgment iteración 2: PASS contra dos `fail` de los jueces, con dos limitaciones conocidas registradas
+
+Los cuatro defectos de la iteración 1 (F1–F4) quedaron corregidos y verificados con control
+negativo propio del adjudicador contra el sistema real: `aggregateByApp` sobre las 32 entradas
+migradas reales (9/9 días separan cada programa, antes 6/9 fusionaban), `monitor-engine.js` real
+con timer real (2 escrituras pre-fix → 1 post-fix), `json-store.js` contra NTFS real (destino
+ilegible pre-fix → historial previo intacto post-fix) y el script PowerShell real de instaladas
+(188 → 82, MySQL y VLC con su nombre principal).
+
+Los dos jueces retornaron `fail`; el adjudicador retornó `pass`. Ninguno de los dos hallazgos es
+compartido como bloqueante: el único `confirmed` lo califica Judge B como "no bloqueante por sí
+solo", y el `fail` de Judge B descansa en un hallazgo que Judge A revisó y cerró sin defecto.
+Detalle completo en `judgment-report.md` (iteración 2). Las dos limitaciones que quedan vivas:
+
+- **[conocida] La fila resucita en memoria tras `closeAllRows`** (`monitor-engine.js:412-418`).
+  `stopEngine()` impide ticks nuevos pero no cancela el tick ya suspendido en el `await` del
+  foco, que reanuda y recrea la fila desde `selection` (que el cierre nunca toca). Deja
+  literalmente incumplida la conjunción "ninguna fila vuelve a existir" del Requirement de
+  `[[judgment-fixes-sessions-groups-history]]`, pero sin consecuencia alcanzable: las dos vías al
+  duplicado —un segundo `closeAllRows` (Electron emite `before-quit` una sola vez por secuencia
+  de salida) y un ■ del usuario durante el desarme del proceso— se probaron y ninguna es
+  alcanzable en la práctica. **Endurecimiento de una línea para un cambio futuro**: vaciar
+  también `selection` dentro de `closeAllRows`, con lo que el paso de altas de `reduceLifecycle`
+  se queda sin nada sobre qué dar de alta y la vía queda cerrada por construcción.
+- **[conocida] `writeJsonAtomic` es más frágil que `writeJson` ante un bloqueo que niega el
+  borrado** (`json-store.js:34-38`). Matriz de share modes medida contra NTFS real:
+  `FileShare::ReadWrite` → `writeJson` OK / `writeJsonAtomic` `EACCES` (única regresión);
+  `ReadWrite, Delete` (el que usan antivirus e indexadores convencionalmente) → ambos OK;
+  `Read` y `None` → ambos fallaban ya antes. El intercambio es favorable y ninguna spec cubre el
+  comportamiento ante bloqueos de terceros, pero la excepción no la captura nadie (ADR-0006
+  declara la persistencia sin `try/catch` por diseño), así que en ese caso se pierden las
+  sesiones que se estaban cerrando —el historial previo queda intacto—.
+
+Nota de método reutilizable: la matriz de share modes de Windows (`FileShare::None` / `Read` /
+`ReadWrite` / `ReadWrite, Delete`, sostenidos desde PowerShell con `[System.IO.File]::Open`
+mientras Node escribe) es la forma de decidir si un tmp+rename es una mejora o una regresión
+frente a una escritura directa. Sin esa matriz, el hallazgo parece un `high` bloqueante; con
+ella, se ve que la regresión vive en un único share mode y que los bloqueos más estrictos
+rompían igual el código anterior.
+
+Limitación de entorno registrada: no se pudo contar empíricamente cuántas veces Electron emite
+`before-quit` (el binario de `node_modules/electron` 13.6.9 no levanta acá por `libnss3.so`
+ausente). Esa parte del análisis es razonamiento sobre el diseño documentado de Electron, no
+ejecución.

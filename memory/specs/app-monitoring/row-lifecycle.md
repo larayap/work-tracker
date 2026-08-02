@@ -6,7 +6,7 @@ slug: "row-lifecycle"
 domain: "feature"
 delta_type: added
 supersedes: null
-superseded_by: null
+superseded_by: "[[row-lifecycle-persistence-by-type]]"
 status: completed
 assigned_agent: "sdd-apply"
 priority: critical

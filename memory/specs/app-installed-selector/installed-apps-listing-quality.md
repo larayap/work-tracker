@@ -6,7 +6,7 @@ slug: "installed-apps-listing-quality"
 domain: "feature"
 delta_type: null
 supersedes: null
-superseded_by: null
+superseded_by: "[[installed-apps-data-integrity]]"
 status: completed
 assigned_agent: "sdd-apply"
 priority: critical

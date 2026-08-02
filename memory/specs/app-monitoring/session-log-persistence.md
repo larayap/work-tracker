@@ -6,7 +6,7 @@ slug: "session-log-persistence"
 domain: "feature"
 delta_type: null
 supersedes: null
-superseded_by: null
+superseded_by: "[[sessions-json-persistence]]"
 status: completed
 assigned_agent: "sdd-apply"
 priority: critical

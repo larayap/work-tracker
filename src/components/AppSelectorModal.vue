@@ -23,16 +23,37 @@
         Límite de 4 aplicaciones alcanzado. Detén una fila para agregar otra.
       </p>
 
+      <div class="type-toggle">
+        <span class="type-toggle-label">Agregar como:</span>
+        <button
+          :class="{ active: addAsType === 'auto' }"
+          @click="addAsType = 'auto'"
+        >
+          Permanente
+        </button>
+        <button
+          :class="{ active: addAsType === 'manual' }"
+          @click="addAsType = 'manual'"
+        >
+          Solo esta vez
+        </button>
+      </div>
+
       <div v-if="tab === 'installed'">
         <p v-if="installedLoading" class="loading-text">Cargando aplicaciones instaladas…</p>
         <ul class="selector-list">
           <li
             v-for="appEntry in filteredInstalled"
             :key="appEntry.appId"
-            :class="{ disabled: monitoredApps.limitReached, checked: isSelected(appEntry.appId) }"
+            :class="{ disabled: monitoredApps.limitReached && !isSelected(appEntry.appId), checked: isSelected(appEntry.appId) }"
             @click="choose(appEntry)"
           >
             <span class="check-mark">{{ isSelected(appEntry.appId) ? '✓' : '' }}</span>
+            <img
+              class="installed-icon"
+              :src="monitoredApps.icons[appEntry.exePath] || fallbackIcon"
+              :alt="`Icono de ${appEntry.name}`"
+            />
             {{ appEntry.name }}
           </li>
         </ul>
@@ -73,9 +94,16 @@ export default {
       monitoredApps: useMonitoredAppsStore(),
       tab: 'installed',
       query: '',
+      // Modalidad del próximo alta (Tarea 9, selection-type-manual-vs-auto):
+      // 'auto' preserva el comportamiento de hoy por defecto.
+      addAsType: 'auto',
       installedApps: [],
       installedLoading: true,
       openWindows: [],
+      // Mismo archivo físico que usa `AppRow.vue` (sin duplicar el asset):
+      // respaldo mientras `ensureIcons` completa la tanda, y defensa en
+      // profundidad si el canal `get-app-icon` fallara.
+      fallbackIcon: require('../../public/img/idk.png'),
     }
   },
   computed: {
@@ -103,6 +131,7 @@ export default {
       ipcRenderer.invoke('get-installed-apps').then(({ apps, loading }) => {
         this.installedApps = apps
         this.installedLoading = loading
+        this.monitoredApps.ensureIcons(apps.map((appEntry) => appEntry.exePath))
       })
     },
     loadOpenWindows() {
@@ -113,16 +142,26 @@ export default {
     handleInstalledUpdated(event, payload) {
       this.installedApps = payload.apps
       this.installedLoading = false
+      this.monitoredApps.ensureIcons(payload.apps.map((appEntry) => appEntry.exePath))
     },
     isSelected(appId) {
       return this.monitoredApps.selection.some((entry) => entry.appId === appId)
     },
     choose(appEntry) {
-      if (this.monitoredApps.limitReached || this.isSelected(appEntry.appId)) return
+      // Reordenado (D-6, Tarea 8): si ya está seleccionado, deseleccionar
+      // siempre gana, incluso con el límite alcanzado — es justo el caso en
+      // que más se necesita liberar un lugar. Recién si no está seleccionado
+      // se evalúa `limitReached` para bloquear el alta.
+      if (this.isSelected(appEntry.appId)) {
+        this.monitoredApps.removeApp(appEntry.appId)
+        return
+      }
+      if (this.monitoredApps.limitReached) return
       this.monitoredApps.addApp({
         appId: appEntry.appId,
         name: appEntry.name,
         exePath: appEntry.exePath,
+        type: this.addAsType,
       })
     },
     chooseOpenWindow(win) {
@@ -136,6 +175,7 @@ export default {
         name: win.appName,
         exePath: win.exePath || null,
         imageName: win.imageName,
+        type: this.addAsType,
       })
     },
   },
@@ -200,6 +240,30 @@ export default {
   color: #ffb347;
   margin: 0 0 0.6rem 0;
 }
+.type-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.8rem;
+}
+.type-toggle-label {
+  color: #ccc;
+}
+.type-toggle button {
+  flex: 1;
+  background: #333;
+  border: none;
+  color: #ccc;
+  padding: 4px 6px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.78rem;
+}
+.type-toggle button.active {
+  background: #6f6f6f;
+  color: #fff;
+}
 .loading-text {
   font-size: 0.85rem;
   color: #ccc;
@@ -228,6 +292,12 @@ export default {
 .check-mark {
   width: 1em;
   display: inline-block;
+}
+.installed-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  filter: grayscale(1);
 }
 .close-btn {
   margin-top: 10px;

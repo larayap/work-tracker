@@ -4,6 +4,7 @@ title: "Persistencia local en archivos JSON bajo userData, escritos por el main 
 status: accepted
 supersedes: null
 superseded_by: null
+amended_by: "[[0007-structured-sessions-json-with-one-shot-migration]]"
 created: "2026-08-01"
 change_ref: "[[app-detection-logos-audio]]"
 capability: "app-monitoring"
@@ -59,6 +60,13 @@ vacía, en ambos casos con la aplicación funcionando.
 `usage-log.txt` **conserva su formato actual**, línea a línea, sin migración de datos
 históricos. Lo que cambia es quién escribe la línea: pasa del renderer al main process, que
 es donde vive la sesión.
+
+> **Enmendado por [[0007-structured-sessions-json-with-one-shot-migration]] (2026-08-02)**:
+> esta cláusula queda revocada. El historial pasa a `sessions.json` estructurado, con
+> migración one-shot idempotente, y `usage-log.txt` deja de leerse y de escribirse. El resto
+> de este ADR —un archivo JSON por concepto bajo `userData`, escrito solo por el main
+> process, con el helper único de lectura tolerante, y sin persistir estado en vivo del
+> monitoreo— sigue vigente sin cambios, y `sessions.json` lo obedece.
 
 Ningún dato de estado en vivo se persiste: las filas del listado visible, el PID y el
 acumulado de la sesión en curso existen solo en memoria. Solo persisten la intención del
