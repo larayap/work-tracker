@@ -82,7 +82,7 @@ async function createWindow() {
   // y carga la selección guardada antes de que el renderer pida el primer
   // snapshot (D2/ADR-0002).
   registerIpcHandlers(mainWindow)
-  monitorEngine.loadSelection()
+  await monitorEngine.loadSelection()
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode

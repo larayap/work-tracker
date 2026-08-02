@@ -334,3 +334,43 @@ nuevos produzca una sola escritura de `app-icons-cache.json` (Tarea 4, checkbox 
 verificación manual) y los tres escenarios de `selector-listing-icons` con la app abierta en
 Windows (ícono real o respaldo por entrada, sin demora perceptible, sin repetir extracción en
 aperturas siguientes).
+
+## 2026-08-02 | env-quirk | verificación | `path.basename` sobre rutas Windows da resultado incorrecto al testear desde este host Linux/WSL
+
+**Detectado por**: sdd-apply en `sessions-groups-history`, al verificar la reconciliación de
+arranque de Tarea 7 (`loadSelection`/`isEntryAlive`) contra `monitored-selection.json` real.
+**Descripción**: `require('path').basename(...)` en Node.js selecciona las reglas
+posix/win32 según el **sistema operativo donde corre el proceso**, no según la forma de la
+ruta que recibe. Con una ruta estilo Windows (`C:\Program Files\...\chrome.exe`) corriendo
+`node -e` en este host Linux/WSL, `path.basename(...)` devuelve la ruta completa sin
+recortar (no hay separador `/` que reconocer), en vez de `chrome.exe`. En producción, la app
+corre en Electron sobre Windows, donde `require('path')` selecciona automáticamente las
+reglas win32 y el mismo código funciona correctamente — no es un bug de esta fase, es
+preexistente al patrón ya usado en `matchFocusedAppId` y en el descubrimiento condicionado
+de `tick()` (ambos ya usan `path.basename(sFocus.exePath)`/`path.basename(entry.exePath)`
+sin cambios de este cambio).
+**Mitigación aplicada en la verificación**: usar `require('path').win32` explícitamente al
+fabricar pruebas con rutas estilo Windows desde este entorno, en vez de `require('path')` a
+secas. Con ese ajuste, la reconciliación de arranque verificada contra
+`monitored-selection.json` real (Brave/Firefox/Chrome, ninguno con `type`) más un escenario
+fabricado (Brave→manual+muerto descartado, Firefox→auto+muerto permanece, Chrome→manual+vivo
+contra el `tasklist.exe` real permanece) da el resultado esperado en los tres casos.
+**Promoción sugerida**: si `sdd-verify` repite esta clase de verificación, usar `path.win32`
+para evitar un falso negativo que parezca un bug de `isEntryAlive`/`matchFocusedAppId` cuando
+en realidad es un artefacto de correr node en el host Linux en vez de en el Windows real.
+
+## 2026-08-02 | unverifiable-in-env | Etapa 3 (selección tipada, deselección, marcador visual) — escenarios que requieren Windows con la app corriendo
+
+**Detectado por**: sdd-apply en `sessions-groups-history`, al cerrar la etapa 3.
+**Descripción**: verificado en esta fase con `node -e` y entradas fabricadas: los tres
+escenarios de `reduceLifecycle` del criterio de Tarea 7 (carrera resuelta, misma referencia
+sin cierres, auto permanece), la reconciliación de arranque contra `monitored-selection.json`
+real + `tasklist.exe` real (manual muerto descartado, auto muerto intacto, manual vivo
+permanece — con la salvedad de `path.win32` para simular Windows desde este host, ver
+observación `env-quirk` anterior), y los controles de no regresión (auto/legacy sin `type`
+permanecen en `selection`). Lint y build limpios. Queda sin verificar en este entorno
+(requiere la app real corriendo en Windows): Tarea 8 (desmarcar con el listado en el límite
+de 4), Tarea 9 (verificación end-to-end de agregar en "Solo esta vez" y reiniciar el
+cronómetro con el programa manual abierto/cerrado), Tarea 10 (el marcador se distingue "de un
+vistazo" — la ausencia de desplazamiento de layout se verificó por lectura del CSS, `position:
+absolute` sobre un contenedor de tamaño fijo).

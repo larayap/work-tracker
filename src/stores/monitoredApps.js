@@ -23,9 +23,11 @@ export const useMonitoredAppsStore = defineStore('monitoredApps', {
     },
     // `imageName` viaja además de `name` (fix C2, judgment-fixes-iteration-1):
     // es el nombre de imagen real que necesita el `appId` degradado (D4),
-    // distinto del nombre legible `name` que se muestra en la fila.
-    async addApp({ appId, name, exePath, imageName }) {
-      const snapshot = await ipcRenderer.invoke('add-to-selection', { appId, name, exePath, imageName })
+    // distinto del nombre legible `name` que se muestra en la fila. `type`
+    // ('manual' | 'auto', Tarea 9) viaja también hasta `add-to-selection`, que
+    // ya reenvía el objeto `entry` completo sin desestructurar.
+    async addApp({ appId, name, exePath, imageName, type }) {
+      const snapshot = await ipcRenderer.invoke('add-to-selection', { appId, name, exePath, imageName, type })
       this.applySnapshot(snapshot)
     },
     async removeApp(appId) {

@@ -356,21 +356,21 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   `row-lifecycle-persistence-by-type` y `saved-selection-only-monitoring` sin `type` (todas
   `auto`) y confirmar que el comportamiento no cambió.
 
-- [ ] `reduceLifecycle` devuelve `{ rows, selection, closed }` con los 4 pasos en el orden
+- [x] `reduceLifecycle` devuelve `{ rows, selection, closed }` con los 4 pasos en el orden
   fijado.
-- [ ] La baja de la entrada manual ocurre en el mismo paso que la baja de la fila, antes de
+- [x] La baja de la entrada manual ocurre en el mismo paso que la baja de la fila, antes de
   evaluar altas.
-- [ ] `tick()` persiste `selection` solo cuando cambió (comparación por referencia).
-- [ ] `closeRow` da de baja la entrada manual correspondiente en la misma operación
+- [x] `tick()` persiste `selection` solo cuando cambió (comparación por referencia).
+- [x] `closeRow` da de baja la entrada manual correspondiente en la misma operación
   síncrona.
-- [ ] `addToSelection` guarda `type` (`'auto'` por defecto) en la entrada y en la fila
+- [x] `addToSelection` guarda `type` (`'auto'` por defecto) en la entrada y en la fila
   inmediata.
-- [ ] `getSnapshot()` expone `type` en filas y en `selection`.
-- [ ] `loadSelection()` es `async`, normaliza `type`, reconcilia manuales muertas contra
+- [x] `getSnapshot()` expone `type` en filas y en `selection`.
+- [x] `loadSelection()` es `async`, normaliza `type`, reconcilia manuales muertas contra
   procesos vivos (una sola enumeración, solo si hay al menos una manual) y persiste solo si
   cambió.
-- [ ] `background.js` usa `await monitorEngine.loadSelection()`.
-- [ ] Verificado con entradas fabricadas: la carrera del escenario 1 no reproduce (fila no
+- [x] `background.js` usa `await monitorEngine.loadSelection()`.
+- [x] Verificado con entradas fabricadas: la carrera del escenario 1 no reproduce (fila no
   renace, manual sale de `selection`); sin cierres, `selection` es la misma referencia; auto
   con PID muerto permanece en `selection`.
 
@@ -400,7 +400,7 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   `closeRow`, sin cambios de este cambio — es la spec `deselect-from-saved-selection`
   confirmando comportamiento existente, D-6).
 
-- [ ] `choose()` evalúa `isSelected` antes que `limitReached`, y llama `removeApp` cuando
+- [x] `choose()` evalúa `isSelected` antes que `limitReached`, y llama `removeApp` cuando
   corresponde.
 - [ ] La clase `disabled` no bloquea el click sobre filas ya seleccionadas cuando el límite
   está alcanzado.
@@ -430,10 +430,10 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   `monitored-selection.json`) — los dos escenarios de `selection-type-manual-vs-auto` que
   ejercitan Tarea 7's reconciliación end-to-end.
 
-- [ ] Toggle "Permanente / Solo esta vez" visible arriba del listado, default Permanente.
-- [ ] `choose()` y `chooseOpenWindow()` propagan `type` según el toggle.
-- [ ] `stores/monitoredApps.js::addApp` propaga `type` hasta el canal IPC.
-- [ ] Confirmado por lectura: `ipc-handlers.js` no necesita cambio (reenvía `entry` completo).
+- [x] Toggle "Permanente / Solo esta vez" visible arriba del listado, default Permanente.
+- [x] `choose()` y `chooseOpenWindow()` propagan `type` según el toggle.
+- [x] `stores/monitoredApps.js::addApp` propaga `type` hasta el canal IPC.
+- [x] Confirmado por lectura: `ipc-handlers.js` no necesita cambio (reenvía `entry` completo).
 - [ ] Verificado a mano: agregar sin tocar el toggle preserva el comportamiento de hoy;
   agregar en "Solo esta vez" persiste `type: 'manual'`.
 
@@ -448,8 +448,8 @@ El orden interno es la corrección, no un detalle de estilo — ver [[0009-typed
   `auto` de un vistazo, sin que el marcador desplace o tape el resto de la fila (nombre,
   reloj, indicador de estado, botón de detener).
 
-- [ ] El marcador aparece solo cuando `row.type === 'manual'`.
-- [ ] No altera el layout de filas automáticas.
+- [x] El marcador aparece solo cuando `row.type === 'manual'`.
+- [x] No altera el layout de filas automáticas.
 
 ---
 
