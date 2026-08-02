@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: null
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: medium
 depends_on: []
@@ -15,7 +15,7 @@ change_ref: "[[app-detection-logos-audio]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/app-detection-logos-audio"
 feature_branch: "feature/app-detection-logos-audio"
 commits: ["fbe6bbff1a578583bbf4e7fb759c8820fb85bd7b"]
-mr: ""
+mr: "https://github.com/larayap/cronometro-app/pull/2"
 acceptance_criteria:
   - "El usuario accede a una pantalla de Opciones desde la barra de la aplicación"
   - "Bajar el control maestro a cero silencia también la alarma de fin de sesión"
@@ -27,7 +27,7 @@ adrs: ["[[0006-userdata-json-persistence]]"]
 scope: ["src/plugins/sound.js", "src/components/TitleBar.vue"]
 verified_at: "2026-08-01"
 created: "2026-08-01"
-updated: "2026-08-01"
+updated: "2026-08-02"
 tags: [capability-spec]
 ---
 

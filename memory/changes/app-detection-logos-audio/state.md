@@ -2,18 +2,18 @@
 type: change-state
 change_name: "app-detection-logos-audio"
 domain: "feature"
-status: active
+status: completed
 fast_path: "full"
-current_phase: sdd-archive
-phases_completed: [sdd-init, sdd-explore, sdd-propose, sdd-spec, sdd-design, sdd-tasks, sdd-apply, sdd-verify, sdd-apply, sdd-verify, sdd-judgment, sdd-apply, sdd-judgment, sdd-apply]
+current_phase: ""
+phases_completed: [sdd-init, sdd-explore, sdd-propose, sdd-spec, sdd-design, sdd-tasks, sdd-apply, sdd-verify, sdd-apply, sdd-verify, sdd-judgment, sdd-apply, sdd-judgment, sdd-apply, sdd-archive]
 judgment_iteration: 2
 adrs: ["[[0001-two-signal-monitoring-engine]]", "[[0002-main-process-owns-monitoring-state]]", "[[0003-start-menu-installed-apps-enumeration]]", "[[0004-os-dependent-code-single-module]]", "[[0005-native-icon-extraction-css-grayscale]]", "[[0006-userdata-json-persistence]]"]
 spec_refs: ["[[two-state-row-machine]]", "[[row-lifecycle]]", "[[saved-selection-only-monitoring]]", "[[session-log-persistence]]", "[[simultaneous-limit]]", "[[empty-state]]", "[[automatic-bw-icons]]", "[[installed-apps-listing-quality]]", "[[status-indicator-non-interactive]]", "[[dual-volume-control]]", "[[dark-loading-state]]", "[[judgment-fixes-iteration-1]]"]
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/app-detection-logos-audio"
 feature_branch: "feature/app-detection-logos-audio"
 integration_target: "main"
-mr: ""
-mr_status: pending
+mr: "https://github.com/larayap/cronometro-app/pull/2"
+mr_status: created
 mr_error: ""
 created: "2026-08-01"
 updated: "2026-08-02"

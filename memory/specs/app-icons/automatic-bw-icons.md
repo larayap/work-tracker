@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: null
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: medium
 depends_on: ["[[row-lifecycle]]"]
@@ -15,7 +15,7 @@ change_ref: "[[app-detection-logos-audio]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/app-detection-logos-audio"
 feature_branch: "feature/app-detection-logos-audio"
 commits: ["3ab7b95c98bf0e718bf875b8e42f178ad2d04e66", "461ae651702402036ac1cd6eb50cdd68db556d56", "e1404f54e81d9020ee73706b1bbebed7a15e3e27", "dc5d5d2", "cdaf80b", "fa12e68"]
-mr: ""
+mr: "https://github.com/larayap/cronometro-app/pull/2"
 acceptance_criteria:
   - "Toda fila del listado muestra el ícono del programa correspondiente en escala de grises"
   - "Ningún ícono se carga manualmente ni depende de que el nombre del programa coincida con un archivo del proyecto"
@@ -26,7 +26,7 @@ adrs: ["[[0005-native-icon-extraction-css-grayscale]]"]
 scope: ["src/background.js", "src/components/CronometroAplicacion.vue", "src/assets"]
 verified_at: "2026-08-01"
 created: "2026-08-01"
-updated: "2026-08-01"
+updated: "2026-08-02"
 tags: [capability-spec]
 ---
 

@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: added
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: medium
 depends_on: ["[[row-lifecycle]]"]
@@ -15,7 +15,7 @@ change_ref: "[[app-detection-logos-audio]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/app-detection-logos-audio"
 feature_branch: "feature/app-detection-logos-audio"
 commits: ["d6b1e5959ebad10d76f26703de8737830bffe9de", "0930d53cf6387371c3b88fa28757fb3ecdca0c39", "144e28b73af4db08eb9d064980915e0612777b27", "5910a25d20fe79fa34812ec26903810d4b5152da"]
-mr: ""
+mr: "https://github.com/larayap/cronometro-app/pull/2"
 acceptance_criteria:
   - "Al detener la última fila visible, el widget muestra 00:00:00 y el control de agregar, sin filas"
   - "Al cerrarse el proceso de la última fila visible, el widget queda en el mismo estado vacío que al detenerla"
@@ -27,7 +27,7 @@ adrs: []
 scope: ["src/components/CronometroAplicacion.vue"]
 verified_at: "2026-08-01"
 created: "2026-08-01"
-updated: "2026-08-01"
+updated: "2026-08-02"
 tags: [capability-spec]
 ---
 

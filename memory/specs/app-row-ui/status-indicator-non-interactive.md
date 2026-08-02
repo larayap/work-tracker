@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: null
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: medium
 depends_on: ["[[two-state-row-machine]]"]
@@ -15,7 +15,7 @@ change_ref: "[[app-detection-logos-audio]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/app-detection-logos-audio"
 feature_branch: "feature/app-detection-logos-audio"
 commits: ["0930d53cf6387371c3b88fa28757fb3ecdca0c39"]
-mr: ""
+mr: "https://github.com/larayap/cronometro-app/pull/2"
 acceptance_criteria:
   - "Hacer click sobre el indicador no produce ningún efecto en el estado de la fila"
   - "Pasar el cursor sobre el indicador no muestra ninguna respuesta visual de botón"
@@ -26,7 +26,7 @@ adrs: []
 scope: ["src/components/CronometroAplicacion.vue"]
 verified_at: "2026-08-01"
 created: "2026-08-01"
-updated: "2026-08-01"
+updated: "2026-08-02"
 tags: [capability-spec]
 ---
 

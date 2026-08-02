@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: added
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: critical
 depends_on: []
@@ -15,7 +15,7 @@ change_ref: "[[app-detection-logos-audio]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/app-detection-logos-audio"
 feature_branch: "feature/app-detection-logos-audio"
 commits: ["5bf6ade055a94a85c8185b3db5714e6b0154837c", "8052ec0536337479fbad91a5314581f0b7a06a54", "56a850a513f49fae29b4aeb6d299b966c74e4c50", "e431617485ea2f51a4d7930252128acbd384f00b", "c865b2d2efb0fd58ffab3f91ffe39b17460213f8", "5145ec9ad72f17e812421293af57b08456dd8416", "d6b1e5959ebad10d76f26703de8737830bffe9de", "0930d53cf6387371c3b88fa28757fb3ecdca0c39", "144e28b73af4db08eb9d064980915e0612777b27", "5910a25d20fe79fa34812ec26903810d4b5152da", "a74a658"]
-mr: ""
+mr: "https://github.com/larayap/cronometro-app/pull/2"
 acceptance_criteria:
   - "Con dos o más filas visibles, en todo momento hay como máximo una fila en estado corriendo"
   - "Cambiar el foco entre programas monitoreados mueve el estado corriendo de una fila a otra sin intervención manual"
@@ -27,7 +27,7 @@ adrs: ["[[0001-two-signal-monitoring-engine]]", "[[0002-main-process-owns-monito
 scope: ["src/background.js", "src/components/CronometroAplicacion.vue"]
 verified_at: "2026-08-01"
 created: "2026-08-01"
-updated: "2026-08-01"
+updated: "2026-08-02"
 tags: [capability-spec]
 ---
 

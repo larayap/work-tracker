@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: added
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: critical
 depends_on: ["[[row-lifecycle]]", "[[session-log-persistence]]", "[[automatic-bw-icons]]"]
@@ -15,6 +15,7 @@ change_ref: "[[app-detection-logos-audio]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/app-detection-logos-audio"
 feature_branch: "feature/app-detection-logos-audio"
 commits: ["e7dd8d298f6db218ceb8ac353e0b07d1c47d1846", "cf4b70b41db12732869431cca2de0ddbe7c1eebb", "a0c564814f0a7df3dfa8eded9d1e6742f1392c51"]
+mr: "https://github.com/larayap/cronometro-app/pull/2"
 acceptance_criteria:
   - "La aplicación crea exactamente una ventana principal por arranque y los canales IPC se registran una sola vez"
   - "La ventana que la aplicación muestra desde el tray es la que tiene la interfaz cargada, y cerrarla la oculta en vez de destruirla"

@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: null
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: low
 depends_on: []
@@ -15,7 +15,7 @@ change_ref: "[[app-detection-logos-audio]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/app-detection-logos-audio"
 feature_branch: "feature/app-detection-logos-audio"
 commits: ["777f4ab6ca299bdffe9aadc0d414958e575df4af"]
-mr: ""
+mr: "https://github.com/larayap/cronometro-app/pull/2"
 acceptance_criteria:
   - "Al abrir la ventana de historial no se observa ningún destello blanco antes del contenido"
   - "El fondo de la ventana de historial es oscuro desde el primer instante en que se muestra"
@@ -25,7 +25,7 @@ adrs: []
 scope: ["src/background.js", "public/history.html", "src/history/HistoryView.vue"]
 verified_at: "2026-08-01"
 created: "2026-08-01"
-updated: "2026-08-01"
+updated: "2026-08-02"
 tags: [capability-spec]
 ---
 

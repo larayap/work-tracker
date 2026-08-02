@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: null
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: critical
 depends_on: []
@@ -15,7 +15,7 @@ change_ref: "[[app-detection-logos-audio]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/app-detection-logos-audio"
 feature_branch: "feature/app-detection-logos-audio"
 commits: ["070e6ad32b77a0664891a22e0f84f77eee6c66ae", "2beeebc7a22af0392b7b229b06332e2f08ac2800", "9e66aa08880b7174c2170aac13d651d1e3deaf6b", "b27f747952bc5bc88787ae900a77d29487c6595d", "2171b964c8e7d3ac0fd935c4ca71921169ea06e7", "861d26cd5501dc5a7008cb97a2a1f0633a527e7c"]
-mr: ""
+mr: "https://github.com/larayap/cronometro-app/pull/2"
 acceptance_criteria:
   - "Con Discord y Clip Studio instalados, ambos aparecen en el listado de instaladas"
   - "Ninguna entrada del listado corresponde a un runtime, actualizador, redistribuible o servicio de fondo"
@@ -27,7 +27,7 @@ adrs: ["[[0003-start-menu-installed-apps-enumeration]]", "[[0004-os-dependent-co
 scope: ["src/background.js", "src/components/CronometroAplicacion.vue"]
 verified_at: "2026-08-01"
 created: "2026-08-01"
-updated: "2026-08-01"
+updated: "2026-08-02"
 tags: [capability-spec]
 ---
 
