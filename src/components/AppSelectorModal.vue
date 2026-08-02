@@ -33,6 +33,11 @@
             @click="choose(appEntry)"
           >
             <span class="check-mark">{{ isSelected(appEntry.appId) ? '✓' : '' }}</span>
+            <img
+              class="installed-icon"
+              :src="monitoredApps.icons[appEntry.exePath] || fallbackIcon"
+              :alt="`Icono de ${appEntry.name}`"
+            />
             {{ appEntry.name }}
           </li>
         </ul>
@@ -76,6 +81,10 @@ export default {
       installedApps: [],
       installedLoading: true,
       openWindows: [],
+      // Mismo archivo físico que usa `AppRow.vue` (sin duplicar el asset):
+      // respaldo mientras `ensureIcons` completa la tanda, y defensa en
+      // profundidad si el canal `get-app-icon` fallara.
+      fallbackIcon: require('../../public/img/idk.png'),
     }
   },
   computed: {
@@ -103,6 +112,7 @@ export default {
       ipcRenderer.invoke('get-installed-apps').then(({ apps, loading }) => {
         this.installedApps = apps
         this.installedLoading = loading
+        this.monitoredApps.ensureIcons(apps.map((appEntry) => appEntry.exePath))
       })
     },
     loadOpenWindows() {
@@ -113,6 +123,7 @@ export default {
     handleInstalledUpdated(event, payload) {
       this.installedApps = payload.apps
       this.installedLoading = false
+      this.monitoredApps.ensureIcons(payload.apps.map((appEntry) => appEntry.exePath))
     },
     isSelected(appId) {
       return this.monitoredApps.selection.some((entry) => entry.appId === appId)
@@ -228,6 +239,12 @@ export default {
 .check-mark {
   width: 1em;
   display: inline-block;
+}
+.installed-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  filter: grayscale(1);
 }
 .close-btn {
   margin-top: 10px;
