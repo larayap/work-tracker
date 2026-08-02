@@ -20,10 +20,21 @@ const jsonStore = require('./json-store.js')
 // elegidos desde la vía de procesos abiertos sin acceso reconocible).
 // ---------------------------------------------------------------------------
 
+// degradedAppId(imageName) → String — arma el appId degradado 'name:<imagen>'
+// desde un nombre de imagen (con extensión). Única fuente de este formato
+// (fix F2, judgment-report iteración 2): antes se armaba por separado en
+// `normalizeAppId` y se derivaba con un criterio distinto en
+// `matchFocusedAppId`, y esa desalineación entre productor y consumidor del
+// mismo dato es justo lo que dejaba sin acumular tiempo a una fila degradada
+// con el foco encima.
+function degradedAppId(imageName) {
+  return 'name:' + String(imageName).toLowerCase()
+}
+
 // normalizeAppId({ exePath, imageName }) → String — pura.
 function normalizeAppId({ exePath, imageName }) {
   if (exePath) return exePath.toLowerCase()
-  return 'name:' + String(imageName).toLowerCase()
+  return degradedAppId(imageName)
 }
 
 // ---------------------------------------------------------------------------
@@ -114,9 +125,18 @@ function removeRow(rows, appId) {
 //
 // Correlación en el orden que fija D4: ruta primero (vía primaria y exacta),
 // nombre de imagen después (vía de respaldo para filas degradadas 'name:...').
-// `sFocus.name` en Windows no siempre es un nombre de imagen exacto (puede ser
-// la descripción del proceso) — es la misma degradación que D4 ya acepta para
-// la vía de procesos abiertos sin ruta resoluble.
+//
+// El nombre de imagen de respaldo se deriva de `sFocus.exePath` con
+// `path.basename` cuando la ruta está disponible — la misma derivación que
+// usa `addToSelection()` para armar el appId degradado (vía `degradedAppId`)
+// — en vez de `sFocus.name`. Fix de F2 (judgment-report iteración 2):
+// `sFocus.name` es, en Windows, la Description del recurso de versión del
+// ejecutable (verificado en el código nativo vendorizado de `active-win`),
+// que para la mayoría de los programas no coincide con su nombre de imagen;
+// una fila degradada nunca vinculaba el foco aunque la ruta sí llegara
+// resuelta, porque su `appId` no tiene `exePath` propio contra el cual
+// comparar. `sFocus.name` queda como último recurso, solo si no hay
+// `exePath` en la muestra de foco.
 function matchFocusedAppId(sFocus, rows) {
   if (!sFocus) return null
 
@@ -125,11 +145,15 @@ function matchFocusedAppId(sFocus, rows) {
       (row) => row.exePath && row.exePath.toLowerCase() === sFocus.exePath.toLowerCase()
     )
     if (byPath) return byPath.appId
+
+    const byDegradedFromPath = rows.find(
+      (row) => row.appId === degradedAppId(path.basename(sFocus.exePath))
+    )
+    if (byDegradedFromPath) return byDegradedFromPath.appId
   }
 
   if (sFocus.name) {
-    const degradedId = 'name:' + sFocus.name.toLowerCase()
-    const byName = rows.find((row) => row.appId === degradedId)
+    const byName = rows.find((row) => row.appId === degradedAppId(sFocus.name))
     if (byName) return byName.appId
   }
 
