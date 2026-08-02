@@ -319,3 +319,18 @@ verificables). No afecta comportamiento observable de la aplicación.
 **Promoción sugerida**: `sdd new remove-dead-dnd-dependencies --domain debt` para evaluar
 remover también `@shopify/draggable` de forma prolija (con su propio commit y verificación),
 en vez de que quede como acción incidental de un cambio no relacionado.
+
+## 2026-08-02 | unverifiable-in-env | Etapa 2 (íconos del selector) — escenarios que requieren Windows con la app corriendo
+
+**Detectado por**: sdd-apply en `sessions-groups-history`, al cerrar la etapa 2.
+**Descripción**: `icon-cache.js` usa `electron.nativeImage`/`app.getPath` y
+`AppSelectorModal.vue`/`monitoredApps.js::ensureIcons` dependen de IPC real y del store
+Pinia — ninguno de los dos es verificable con `node -e` sin Windows, tal como ya lo señala
+`design.md` (Escenario 7 de la Estrategia de Testing). Lo verificado en esta fase: lint y
+build limpios; el patrón de pool de concurrencia acotada a 6 replicado y simulado de forma
+aislada (`node -e` con un mock async) confirma que el máximo simultáneo nunca supera 6 sobre
+25 ítems fabricados. Queda sin verificar en este entorno: que una tanda real de N íconos
+nuevos produzca una sola escritura de `app-icons-cache.json` (Tarea 4, checkbox de
+verificación manual) y los tres escenarios de `selector-listing-icons` con la app abierta en
+Windows (ícono real o respaldo por entrada, sin demora perceptible, sin repetir extracción en
+aperturas siguientes).

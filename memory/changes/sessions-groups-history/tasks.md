@@ -217,11 +217,11 @@ solo delega en `session-log-parser.js` la parte que no necesita `electron`.
   observando que el `mtime` del archivo cambia una sola vez durante la apertura — retirado
   antes de cerrar la tarea).
 
-- [ ] `persistToDisk` acumula en un `Map` en vez de leer+escribir por cada llamada.
-- [ ] El volcado se agenda con un temporizador que se reinicia con cada llegada mientras está
+- [x] `persistToDisk` acumula en un `Map` en vez de leer+escribir por cada llamada.
+- [x] El volcado se agenda con un temporizador que se reinicia con cada llegada mientras está
   pendiente (no un microtask puro).
-- [ ] S1 se preserva: ninguna clave pendiente se pierde entre el agendado y el volcado.
-- [ ] F1 se preserva: una falla de `jsonStore.writeJson` no deja la cola inutilizada.
+- [x] S1 se preserva: ninguna clave pendiente se pierde entre el agendado y el volcado.
+- [x] F1 se preserva: una falla de `jsonStore.writeJson` no deja la cola inutilizada.
 - [ ] Verificado a mano en Windows: una tanda de N íconos nuevos produce una sola escritura
   del archivo de caché.
 
@@ -240,8 +240,8 @@ solo delega en `session-log-parser.js` la parte que no necesita `electron`.
   fabricado de 20+ rutas y confirmar que el máximo simultáneo no supera 6 en ningún momento
   (retirar la instrumentación antes de cerrar la tarea).
 
-- [ ] `ensureIcons(exePaths)` existe en el store y reutiliza `ensureIcon`.
-- [ ] La concurrencia máxima simultánea verificada es 6, no 82 en paralelo ni secuencial de
+- [x] `ensureIcons(exePaths)` existe en el store y reutiliza `ensureIcon`.
+- [x] La concurrencia máxima simultánea verificada es 6, no 82 en paralelo ni secuencial de
   a uno.
 
 ### Tarea 6: Íconos en el listado del selector
@@ -263,11 +263,11 @@ solo delega en `session-log-parser.js` la parte que no necesita `electron`.
   completan; una apertura posterior no repite la extracción (verificable observando que no
   hay nuevas llamadas IPC `get-app-icon` para rutas ya presentes en `monitoredApps.icons`).
 
-- [ ] Cada `<li>` de instaladas muestra `<img>` con el ícono o el respaldo, con
+- [x] Cada `<li>` de instaladas muestra `<img>` con el ícono o el respaldo, con
   `grayscale(1)`.
-- [ ] `ensureIcons` se dispara al poblarse `installedApps`, en los dos puntos donde se asigna
+- [x] `ensureIcons` se dispara al poblarse `installedApps`, en los dos puntos donde se asigna
   hoy.
-- [ ] No se introduce un mapa de íconos propio del modal: se reutiliza `monitoredApps.icons`.
+- [x] No se introduce un mapa de íconos propio del modal: se reutiliza `monitoredApps.icons`.
 
 ---
 

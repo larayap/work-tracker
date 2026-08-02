@@ -51,6 +51,27 @@ export const useMonitoredAppsStore = defineStore('monitoredApps', {
       const { dataUrl } = await ipcRenderer.invoke('get-app-icon', exePath)
       this.icons[exePath] = dataUrl
     },
+    // ensureIcons(exePaths) — pide los íconos de todo el listado con
+    // concurrencia acotada a `CONCURRENCY` en vuelo (D-15, Tarea 5), en vez de
+    // disparar un `invoke` por cada una de las ~82 entradas del selector a la
+    // vez: el main process que extrae los íconos es el mismo que sostiene el
+    // tick de 1000ms del motor. Reutiliza `ensureIcon`, cuyo guard por
+    // `hasOwnProperty` ya cubre la reentrada (no repite la extracción de un
+    // ícono ya resuelto, aunque sea `null`).
+    async ensureIcons(exePaths) {
+      const CONCURRENCY = 6
+      let cursor = 0
+      const worker = async () => {
+        while (cursor < exePaths.length) {
+          const exePath = exePaths[cursor]
+          cursor += 1
+          await this.ensureIcon(exePath)
+        }
+      }
+      await Promise.all(
+        Array.from({ length: Math.min(CONCURRENCY, exePaths.length) }, () => worker())
+      )
+    },
     init() {
       ipcRenderer.invoke('get-monitored-snapshot').then((snapshot) => this.applySnapshot(snapshot))
       ipcRenderer.on('monitored-apps-state', (event, snapshot) => this.applySnapshot(snapshot))
