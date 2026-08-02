@@ -113,9 +113,10 @@ function showMainWindow() {
 
 // Único camino de arranque (fix C1, judgment-fixes-iteration-1). Antes había
 // dos listeners de 'ready' —este `whenReady().then()` y un `app.on('ready')`
-// más abajo, ambos duplicados ya en la base previa al cambio— que llamaban
-// createWindow() cada uno. La duplicación era inofensiva hasta que este
-// cambio movió registerIpcHandlers(mainWindow) adentro de createWindow():
+// que vivía después de todos los handlers de IPC, ambos duplicados ya en la
+// base previa al cambio y ahora eliminado— que llamaban createWindow() cada
+// uno. La duplicación era inofensiva hasta que este cambio movió
+// registerIpcHandlers(mainWindow) adentro de createWindow():
 // ipcMain.handle() lanza al registrar un canal ya registrado, así que la
 // segunda invocación reasignaba `mainWindow` (línea de BrowserWindow más
 // abajo) y lanzaba antes de loadURL() y de mainWindow.on('close'), dejando la
