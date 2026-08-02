@@ -43,7 +43,7 @@ function normalizeAppId({ exePath, imageName }) {
 // en el mismo tick (D1). Sin IPC ni `fs`.
 // ---------------------------------------------------------------------------
 
-// reduceLifecycle(sLive, selection, rows) → { rows, closed }
+// reduceLifecycle(sLive, selection, rows) → { rows, selection, closed }
 //
 // sLive — señal de vida, construida por el orquestador del tick (Tarea 13):
 //   { alivePids: Set<Number>,      // pids de filas existentes que siguen vivos
@@ -51,12 +51,20 @@ function normalizeAppId({ exePath, imageName }) {
 //     discovered: { [appId]: pid } // evidencia de apertura o vinculación por
 //                                  // appId — tasklist cada 5 ticks + PID/ruta
 //                                  // de la muestra de foco del propio tick }
+//
+// Orden interno invariante (D-5/ADR-0009 — resuelve la carrera de la entrada
+// manual: sin esto, el mismo tick que cierra una fila manual todavía la ve en
+// `selection` al evaluar altas y la recrea):
+//   1. filas con PID muerto salen a `closed`
+//   2. (mismo paso que el 1) baja atómica de las entradas MANUAL de esas filas
+//   3. vinculación de PIDs a filas sin PID
+//   4. altas evaluadas sobre `nextSelection`, nunca sobre la `selection` de entrada
 function reduceLifecycle(sLive, selection, rows) {
   const closed = []
 
-  // baja: fila con pid !== null cuyo PID ya no está vivo (D6 — una fila con
-  // pid: null nunca sale por este camino, porque nunca tuvo evidencia de vida
-  // que pueda perder).
+  // Paso 1: baja de fila con pid !== null cuyo PID ya no está vivo (D6 — una
+  // fila con pid: null nunca sale por este camino, porque nunca tuvo
+  // evidencia de vida que pueda perder).
   let nextRows = rows.filter((row) => {
     const hasPid = row.pid !== null && row.pid !== undefined
     if (hasPid && !sLive.alivePids.has(row.pid)) {
@@ -66,8 +74,21 @@ function reduceLifecycle(sLive, selection, rows) {
     return true
   })
 
-  // vinculación: fila con pid null cuyo proceso se detecta vivo → se le asigna
-  // el pid, sin abrir sesión nueva ni tocar elapsedMs/sessionStartedAt.
+  // Paso 2 (en el mismo paso que el 1): baja atómica de las entradas `manual`
+  // cuyas filas acaban de cerrarse. Si no hubo baja manual, `nextSelection` es
+  // la MISMA referencia que `selection` (no clonar sin necesidad) — el
+  // llamador (tick()) la usa para decidir con `!==` si hay que persistir.
+  let nextSelection = selection
+  const closedManualIds = new Set(
+    closed.filter(({ row }) => row.type === 'manual').map(({ row }) => row.appId)
+  )
+  if (closedManualIds.size > 0) {
+    nextSelection = selection.filter((entry) => !closedManualIds.has(entry.appId))
+  }
+
+  // Paso 3: vinculación de PIDs a filas sin PID (sin cambios) — fila con pid
+  // null cuyo proceso se detecta vivo se le asigna el pid, sin abrir sesión
+  // nueva ni tocar elapsedMs/sessionStartedAt.
   nextRows = nextRows.map((row) => {
     const noPid = row.pid === null || row.pid === undefined
     const livePid = sLive.discovered[row.appId]
@@ -77,12 +98,13 @@ function reduceLifecycle(sLive, selection, rows) {
     return row
   })
 
-  // alta: programa de `selection` con proceso vivo y sin fila propia.
-  // Nace con `state: null` — reduceFocus lo resuelve en la misma muestra de
-  // foco de este tick (D1). El alta manual con proceso cerrado (D6) NO ocurre
-  // acá: la dispara `addToSelection`/`add-to-selection` (Tarea 14/17), que crea
-  // la fila con `pid: null` fuera del tick.
-  selection.forEach((entry) => {
+  // Paso 4: alta — programa de `nextSelection` (nunca `selection`) con
+  // proceso vivo y sin fila propia. Nace con `state: null` — reduceFocus lo
+  // resuelve en la misma muestra de foco de este tick (D1). El alta manual
+  // con proceso cerrado (D6) NO ocurre acá: la dispara
+  // `addToSelection`/`add-to-selection` (Tarea 14/17), que crea la fila con
+  // `pid: null` fuera del tick.
+  nextSelection.forEach((entry) => {
     const alreadyHasRow = nextRows.some((row) => row.appId === entry.appId)
     if (alreadyHasRow) return
 
@@ -96,15 +118,19 @@ function reduceLifecycle(sLive, selection, rows) {
       appId: entry.appId,
       name: entry.name,
       exePath: entry.exePath,
+      type: entry.type,
       pid: livePid,
       state: null,
       elapsedMs: 0,
       sessionStartedAt: now,
       lastTickAt: now,
+      sessionName: null,
+      groupId: null,
+      groupName: null,
     })
   })
 
-  return { rows: nextRows, closed }
+  return { rows: nextRows, selection: nextSelection, closed }
 }
 
 // removeRow(rows, appId) → { rows, removed } — pura, helper interno que
@@ -256,6 +282,14 @@ async function tick() {
     const lifecycleResult = reduceLifecycle({ alivePids, discovered }, selection, rows)
     lifecycleResult.closed.forEach(({ row }) => sessionLog.appendSession(row, new Date()))
 
+    // La baja atómica de entradas manuales (D-5/ADR-0009) solo se persiste
+    // cuando el reductor devolvió una referencia distinta — comparación por
+    // referencia, no de contenido, para no escribir en cada tick.
+    if (lifecycleResult.selection !== selection) {
+      selection = lifecycleResult.selection
+      jsonStore.writeJson(getSelectionFilePath(), selection)
+    }
+
     // 2. Foco después (D1): asigna estado a las filas que sobrevivieron.
     rows = reduceFocus(focusSample, lifecycleResult.rows, Date.now())
 
@@ -289,9 +323,98 @@ function closeRow(appId, motivo) {
     console.log(`Fila cerrada: ${appId} (${motivo})`)
     sessionLog.appendSession(removed, new Date())
     rows = nextRows
+
+    // Baja atómica de la entrada manual (D-5/ADR-0009): en la misma operación
+    // síncrona que quita la fila y registra la sesión, nunca en un paso
+    // posterior — ningún camino de salida de fila puede dejar sin resolver,
+    // en la misma operación, la baja de su entrada en `selection`.
+    if (removed.type === 'manual') {
+      const prevLength = selection.length
+      selection = selection.filter((entry) => entry.appId !== appId)
+      if (selection.length !== prevLength) {
+        jsonStore.writeJson(getSelectionFilePath(), selection)
+      }
+    }
+
     notify()
   }
   return removed
+}
+
+// ---------------------------------------------------------------------------
+// Nombre de sesión y grupo (D-3/ADR-0008): campos de la fila, no una entidad
+// aparte. Un grupo existe si y solo si hay al menos una fila con ese
+// `groupId`; su nombre es el `groupName` que comparten esas filas.
+// ---------------------------------------------------------------------------
+
+// renameSession(appId, name) — pone o cambia el nombre de la sesión de una
+// fila mientras está abierta.
+function renameSession(appId, name) {
+  const row = rows.find((r) => r.appId === appId)
+  if (row) {
+    row.sessionName = name || null
+    notify()
+  }
+}
+
+// renameGroup(groupId, name) — escribe `groupName` en TODAS las filas del
+// grupo (no hay un único lugar donde vive el nombre: cada fila lo repite).
+function renameGroup(groupId, name) {
+  const groupName = name || null
+  let changed = false
+  rows.forEach((row) => {
+    if (row.groupId === groupId) {
+      row.groupName = groupName
+      changed = true
+    }
+  })
+  if (changed) notify()
+}
+
+// setRowGroup(appId, groupId) — traduce la intención del arrastre (D-7) a un
+// cambio de estado autoritativo. Con `groupId` truthy, la fila se suma al
+// grupo y hereda el `groupName` que ya tengan sus otras filas (o `null` si es
+// la primera — el nombre llega después, vía `renameGroup`). Con `groupId`
+// null/falsy, la fila sale de cualquier grupo.
+function setRowGroup(appId, groupId) {
+  const row = rows.find((r) => r.appId === appId)
+  if (!row) return
+
+  if (groupId) {
+    const sibling = rows.find((r) => r.groupId === groupId && r.appId !== appId)
+    row.groupId = groupId
+    row.groupName = sibling ? sibling.groupName : null
+  } else {
+    row.groupId = null
+    row.groupName = null
+  }
+
+  notify()
+}
+
+// closeAllRows(motivo) — cierre sincrónico de todas las filas abiertas
+// (D-4/ADR-0009), pensado para `before-quit`: una única llamada a
+// `appendSessions` (nunca un `forEach` con `appendSession` por fila), que
+// hace un único `jsonStore.writeJson` sincrónico — el trabajo entero entre
+// `before-quit` y la escritura en disco es síncrono, sin `await` ni callback
+// asíncrono de por medio.
+//
+// `stopEngine()` es parte necesaria del cierre (fix F2, judgment-report
+// iteración 1): sin ella, el timer sigue vivo y un `tick()` ya suspendido en
+// el `await` de `getForegroundWindow()` reanuda después de este cierre,
+// encuentra `rows` vacío pero `selection` intacta, y `reduceLifecycle`
+// resucita la fila desde la selección con la evidencia de vida de esa misma
+// muestra de foco — si el proceso monitoreado muere en un tick posterior,
+// `appendSession` escribe una segunda entrada para la misma sesión lógica.
+// Detener el timer acá cierra el camino completo, no solo la ventana: ningún
+// tick nuevo puede arrancar, y el que ya estaba en vuelo encuentra
+// `inFlight` sin relevancia porque no hay más ticks que lo sigan.
+function closeAllRows(motivo) {
+  stopEngine()
+  if (rows.length === 0) return
+  console.log(`Cierre de ${rows.length} fila(s) al salir (${motivo})`)
+  sessionLog.appendSessions(rows, new Date())
+  rows = []
 }
 
 // getSnapshot() — mensaje único de estado que viaja al renderer (D2).
@@ -305,11 +428,16 @@ function getSnapshot() {
       state: row.state,
       elapsedMs: row.elapsedMs,
       sessionStartedAt: row.sessionStartedAt,
+      type: row.type,
+      sessionName: row.sessionName,
+      groupId: row.groupId,
+      groupName: row.groupName,
     })),
     selection: selection.map((entry) => ({
       appId: entry.appId,
       name: entry.name,
       exePath: entry.exePath,
+      type: entry.type,
     })),
     limitReached: rows.length === 4,
   }
@@ -323,10 +451,43 @@ function getSelectionFilePath() {
   return path.join(app.getPath('userData'), 'monitored-selection.json')
 }
 
-// loadSelection() — se invoca una vez al arrancar background.js (Tarea 16).
-// Arranca el motor si la selección persistida no está vacía.
-function loadSelection() {
-  selection = jsonStore.readJson(getSelectionFilePath(), [])
+// isEntryAlive(entry, processes) — pura, helper de la reconciliación de
+// arranque: deriva el nombre de imagen de la misma forma que el
+// descubrimiento condicionado del tick (path.basename del exePath, o el
+// sufijo del appId degradado si no hay exePath) y lo busca entre los
+// procesos vivos reportados por `tasklist`.
+function isEntryAlive(entry, processes) {
+  const imageName = entry.exePath
+    ? path.basename(entry.exePath)
+    : entry.appId.replace(/^name:/, '')
+  return processes.some((proc) => proc.imageName.toLowerCase() === imageName.toLowerCase())
+}
+
+// loadSelection() — se invoca una vez al arrancar background.js (Tarea 16),
+// ahora async (D-5/ADR-0009): normaliza `type` una sola vez al leer (ausente
+// ⇒ 'auto'), y si hay al menos una entrada `manual` reconcilia contra los
+// procesos vivos —una única enumeración, nunca si todas las entradas son
+// `auto`, mismo criterio de costo que el descubrimiento condicionado del
+// tick—, descartando las manuales sin proceso vivo correspondiente sin tocar
+// las automáticas. Persiste solo si la reconciliación descartó algo. Arranca
+// el motor si la selección resultante no está vacía.
+async function loadSelection() {
+  const stored = jsonStore.readJson(getSelectionFilePath(), [])
+  const normalized = stored.map((entry) => ({
+    ...entry,
+    type: entry.type === 'manual' ? 'manual' : 'auto',
+  }))
+
+  let reconciled = normalized
+  if (normalized.some((entry) => entry.type === 'manual')) {
+    const processes = await platform.listRunningProcesses()
+    reconciled = normalized.filter((entry) => entry.type !== 'manual' || isEntryAlive(entry, processes))
+  }
+
+  selection = reconciled
+  if (reconciled.length !== normalized.length) {
+    jsonStore.writeJson(getSelectionFilePath(), selection)
+  }
   if (selection.length > 0) startEngine()
 }
 
@@ -345,11 +506,18 @@ function loadSelection() {
 // (líneas más abajo) — nunca sobre `name`, que es la descripción legible que
 // se muestra en la fila y no tiene por qué coincidir con ningún nombre de
 // imagen.
-function addToSelection({ appId, name, exePath, imageName }) {
+function addToSelection({ appId, name, exePath, imageName, type }) {
   const id = appId || normalizeAppId({ exePath, imageName })
+  const existingEntry = selection.find((entry) => entry.appId === id)
+  // `type` ('manual' | 'auto', Tarea 9): default 'auto' preserva el
+  // comportamiento de hoy. Si la entrada ya existía en la selección, la fila
+  // nueva hereda su `type` real en vez del que llega en esta llamada — evita
+  // que dos altas del mismo `appId` con distinto toggle dejen la fila
+  // desalineada con su propia entrada de selección.
+  const entryType = existingEntry ? existingEntry.type : type || 'auto'
 
-  if (!selection.some((entry) => entry.appId === id)) {
-    selection.push({ appId: id, name, exePath: exePath || null, addedAt: Date.now() })
+  if (!existingEntry) {
+    selection.push({ appId: id, name, exePath: exePath || null, addedAt: Date.now(), type: entryType })
     jsonStore.writeJson(getSelectionFilePath(), selection)
   }
 
@@ -360,11 +528,15 @@ function addToSelection({ appId, name, exePath, imageName }) {
       appId: id,
       name,
       exePath: exePath || null,
+      type: entryType,
       pid: null,
       state: 'paused',
       elapsedMs: 0,
       sessionStartedAt: now,
       lastTickAt: now,
+      sessionName: null,
+      groupId: null,
+      groupName: null,
     })
   }
 
@@ -396,6 +568,10 @@ module.exports = {
   startEngine,
   stopEngine,
   closeRow,
+  closeAllRows,
+  renameSession,
+  renameGroup,
+  setRowGroup,
   getSnapshot,
   onUpdate,
   loadSelection,

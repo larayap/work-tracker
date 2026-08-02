@@ -13,6 +13,11 @@ const { filterInstalledApps } = require('./installed-apps-filter.js')
 let mainWindowRef = null
 let inFlightPromise = null
 
+// Sube cuando cambia la forma de la caché en disco (Tarea 3/D-13): una caché
+// escrita por una versión con schemaVersion distinto (o sin el campo) se trata
+// como si no existiera, en vez de servirse corrupta o desactualizada.
+const INSTALLED_APPS_SCHEMA_VERSION = 2
+
 // setMainWindow(win) — ipc-handlers.js la invoca con la misma referencia que
 // usa para el motor de monitoreo (Tarea 15/27), así este módulo puede
 // empujar `installed-apps-updated` sin que `background.js` lo intermedie.
@@ -34,7 +39,7 @@ function enumerate() {
     .then((rawEntries) => filterInstalledApps(rawEntries))
     .then((apps) => {
       const cachedAt = Date.now()
-      jsonStore.writeJson(getCacheFilePath(), { apps, cachedAt })
+      jsonStore.writeJson(getCacheFilePath(), { schemaVersion: INSTALLED_APPS_SCHEMA_VERSION, apps, cachedAt })
       if (mainWindowRef) {
         mainWindowRef.webContents.send('installed-apps-updated', { apps, cachedAt })
       }
@@ -57,8 +62,9 @@ function enumerate() {
 // mismo canal de push cuando la promesa en vuelo se resuelve.
 function getInstalledApps() {
   const cached = jsonStore.readJson(getCacheFilePath(), null)
+  const validCache = cached && cached.schemaVersion === INSTALLED_APPS_SCHEMA_VERSION
 
-  if (cached) {
+  if (validCache) {
     enumerate()
     return Promise.resolve({ apps: cached.apps, cachedAt: cached.cachedAt, loading: false })
   }

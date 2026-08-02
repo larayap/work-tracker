@@ -10,6 +10,7 @@ const isDevelopment = process.env.NODE_ENV !== 'production'
 const fs = require('fs')
 const platformWindows = require('./main/platform-windows.js')
 const monitorEngine = require('./main/monitor-engine.js')
+const sessionLog = require('./main/session-log.js')
 const { registerIpcHandlers } = require('./main/ipc-handlers.js')
 
 // Scheme must be registered before the app is ready
@@ -79,10 +80,15 @@ async function createWindow() {
   Menu.setApplicationMenu(null);
 
   // Registra el contrato IPC del motor de monitoreo y de Opciones (Tarea 15),
-  // y carga la selección guardada antes de que el renderer pida el primer
-  // snapshot (D2/ADR-0002).
+  // migra el historial legado (ADR-0007) y carga la selección guardada antes
+  // de que el renderer pida el primer snapshot (D2/ADR-0002). El orden entre
+  // la migración y `loadSelection()` es la invariante de ADR-0007: si el
+  // motor pudiera abrir sesiones antes de que la migración corra, crearía
+  // `sessions.json` prematuramente y la migración se saltearía, perdiendo el
+  // historial legado.
   registerIpcHandlers(mainWindow)
-  monitorEngine.loadSelection()
+  sessionLog.migrateLegacyLog()
+  await monitorEngine.loadSelection()
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
@@ -203,25 +209,6 @@ ipcMain.on('open-history-window', () => {
   }
 })
 
-const logFilePath = path.join(app.getPath('userData'), 'usage-log.txt')
-
-ipcMain.handle('get-app-logs', async () => {
-  console.log(`Leyendo el archivo de log: ${logFilePath}`)
-  if (!fs.existsSync(logFilePath)) return []
-
-  const lines = fs.readFileSync(logFilePath, 'utf-8').split('\n').filter(Boolean)
-
-  return lines.map(line => {
-    const match = line.match(/\[(.*?)\] Aplicación: (.*?) \| Duración: (.*?) \| Inicio: (.*?) \| Fin: (.*)/)
-    if (!match) return null
-
-    // eslint-disable-next-line no-unused-vars
-    const [_, datetime, app, duration, startTime, endTime] = match
-    const [date] = datetime.split(' ')
-    return { date, app, duration, startTime, endTime }
-  }).filter(Boolean)
-})
-
 const sessionsFile = path.join(app.getPath('userData'), 'pomodoro-sessions.json')
 
 // handler para leer
@@ -262,6 +249,16 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+// Cierre sincrónico de sesiones abiertas al salir (D-4/ADR-0009): cubre las
+// dos rutas de salida existentes, que convergen en `app.quit()` (el menú de
+// la bandeja pone `app.isQuiting = true` y llama `app.quit()`;
+// `window-all-closed` también llama `app.quit()` más abajo). Documentado
+// como riesgo residual aceptado: Electron puede no emitir `before-quit` en
+// Windows durante apagado, reinicio o cierre de sesión del sistema.
+app.on('before-quit', () => {
+  monitorEngine.closeAllRows('app-quit')
 })
 
 app.on('activate', () => {
