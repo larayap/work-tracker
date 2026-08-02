@@ -125,10 +125,10 @@ sí requiere mouse real sobre un DOM renderizado y no es verificable en este ent
   etiqueta del grupo, sin fusionarse con las demás. (`appendSessions` construye una entrada
   independiente por fila, cada una con su propio `groupId`/`groupName`; no existe ningún paso
   de agregación al escribir)
-- [ ] El total de un grupo mostrado en cualquier vista es la suma de las duraciones de sus
-  filas en el período consultado. (el agregador puro ya lo garantiza por construcción,
-  `buildDayTimeline`/Tarea 11 — verificado; falta que Etapa 6 construya las vistas que lo
-  consumen)
+- [x] El total de un grupo mostrado en cualquier vista es la suma de las duraciones de sus
+  filas en el período consultado. (`BySessionView.vue`, etapa 6a, muestra `block.durationMs`
+  de `buildDayTimeline` — la suma de sus miembros, nunca reloj de pared — verificado
+  exhaustivamente desde la Tarea 11)
 - [ ] Sacar una fila de un grupo la devuelve al listado suelto.
 - [x] Un grupo sin ninguna fila miembro deja de mostrarse como grupo. (estructural: la
   existencia del grupo se deriva de `dragGrouped.length > 0`, no hay entidad persistida que
