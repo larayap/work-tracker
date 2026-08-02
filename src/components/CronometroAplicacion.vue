@@ -5,43 +5,30 @@
         <font-awesome-icon icon="bars" />
       </button>
       <h1 style="margin: 0;">Work</h1>
-    </div>
-    
-    <div class="controls">
-      <!-- Nuevo botón para seleccionar la aplicación -->
-      <button @click="openAppList">
+      <button
+        class="button-add"
+        @click="showSelector = true"
+        :disabled="monitoredApps.limitReached"
+        title="Agregar aplicación"
+      >
         <font-awesome-icon icon="plus" />
       </button>
-      <div class="app-icon-inline" v-if="appIcon">
-        <img :src="appIcon" :alt="`Icono de ${selectedApp}`" :title="`${selectedApp}`" />
-      </div>
-      <div class="display">{{ formattedTime }}</div>
-      <button @click="reset">
-        <font-awesome-icon icon="square" />
-      </button>
-      <button @click="toggle">
-        <font-awesome-icon :icon="running ? 'pause' : 'play'" />
-      </button>
-
     </div>
 
-    <!-- Modal para seleccionar la aplicación -->
-    <div v-if="showAppList" class="modal-overlay" @click.self="closeAppList">
-      <div class="modal-content" ref="modalContent" tabindex="0" @keydown="handleKeydown">
-        <h3>Selecciona una aplicación</h3>
-        <ul>
-          <li
-            v-for="(app, index) in openWindows"
-            :key="index"
-            :class="{ selected: index === selectedIndex }"
-            @click="selectApp(app)"
-          >
-            {{ app.appName }}
-          </li>
-        </ul>
-        <button class="close-btn" @click="closeAppList">Cerrar lista</button>
-      </div>
+    <!-- Estado vacío (empty-state): mismo reposo que hoy, sin mensaje ni ilustración -->
+    <div v-if="monitoredApps.rows.length === 0" class="controls">
+      <div class="display">00:00:00</div>
     </div>
+
+    <AppRow
+      v-for="row in monitoredApps.rows"
+      :key="row.appId"
+      :row="row"
+      :icon="monitoredApps.icons[row.exePath]"
+      @stop="monitoredApps.stopRow(row.appId)"
+    />
+
+    <AppSelectorModal v-if="showSelector" @close="showSelector = false" />
 
     <!-- Modal de historial -->
     <div v-if="showHistory" class="modal-overlay" @click.self="showHistory = false">
@@ -62,176 +49,37 @@
 
 <script>
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { faPlay, faPause, faSquare, faPlus, faBars } from '@fortawesome/free-solid-svg-icons'
+import { faPlus, faBars } from '@fortawesome/free-solid-svg-icons'
 import { library } from '@fortawesome/fontawesome-svg-core'
+import { useMonitoredAppsStore } from '@/stores/monitoredApps'
+import AppRow from '@/components/AppRow.vue'
+import AppSelectorModal from '@/components/AppSelectorModal.vue'
 const { ipcRenderer } = window.require('electron')
 
-library.add(faPlay, faPause, faSquare, faPlus, faBars)
+library.add(faPlus, faBars)
 
 export default {
   name: 'CronometroComponent',
-  components: { FontAwesomeIcon },
+  components: { FontAwesomeIcon, AppRow, AppSelectorModal },
   data() {
     return {
-      time: 0,
-      intervalId: null,
-      running: false,
-      appIcon: null,
-      selectedApp: null, // Guarda la aplicación seleccionada
-      monitoring: false, // Controla si está monitoreando
-      openWindows: [], // Lista de ventanas abiertas
-      showAppList: false, // Mostrar el modal
-      selectedIndex: 0, // Índice de la app seleccionada
-      startTime: null, // Hora de inicio del cronómetro
+      monitoredApps: useMonitoredAppsStore(),
+      showSelector: false, // Mostrar AppSelectorModal
     }
   },
-  computed: {
-    formattedTime() {
-      const seconds = Math.floor((this.time / 1000) % 60)
-      const minutes = Math.floor((this.time / (1000 * 60)) % 60)
-      const hours = Math.floor(this.time / (1000 * 60 * 60))
-      const pad = num => (num < 10 ? '0' + num : num)
-      return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
-    }
+  created() {
+    this.monitoredApps.init()
   },
   watch: {
-    selectedApp(newAppName) {
-      try {
-        this.appIcon = require(`@/assets/${newAppName}.png`)
-      } catch (err) {
-        this.appIcon = require('@/assets/idk.png')
-      }
-    }
+    'monitoredApps.rows'(rows) {
+      rows.forEach((row) => this.monitoredApps.ensureIcon(row.exePath))
+    },
   },
   methods: {
-    toggle() {
-      this.running ? this.pause() : this.start()
-    },
     openHistoryWindow() {
-      const { ipcRenderer } = window.require('electron')
       ipcRenderer.send('open-history-window')
     },
-    start() {
-      if (!this.running && this.selectedApp) {
-        this.running = true
-        ipcRenderer.send('start-cronometro-monitoring', this.selectedApp)
-      }
-    },
-    pause() {
-      this.running = false
-      ipcRenderer.send('stop-cronometro-monitoring')
-      clearInterval(this.intervalId)
-    },
-    reset() {
-      // 1) Marcar hora de fin
-      const endTime = new Date()
-      
-      // 2) Parar cronómetro
-      this.running = false
-      clearInterval(this.intervalId)
-      
-      // 3) Calcular duración en formato HH:MM:SS
-      const totalMs = this.time
-      const duration = this.msToHHMMSS(totalMs)
-
-      // 4) Formatear "inicio" y "fin" en HH:MM:SS
-      const startString = this.startTime ? this.formatTimeHHMMSS(this.startTime) : '00:00:00'
-      const endString = this.formatTimeHHMMSS(endTime)
-
-      // 5) Formato [YYYY-MM-DD HH:MM:SS] Aplicación: XXX | Duración: XXX | Inicio: XXX | Fin: XXX
-      const datePart = this.formatDateYYYYMMDD(endTime)       // e.g. 2025-04-06
-      const timePart = this.formatTimeHHMMSS(endTime)         // e.g. 14:05:32
-      const line = `[${datePart} ${timePart}] Aplicación: ${this.selectedApp} | Duración: ${duration} | Inicio: ${startString} | Fin: ${endString}`
-      
-      // 6) Enviamos al main process para guardar en .txt
-      ipcRenderer.send('save-log-line', line)
-
-      // 7) Reseteamos el contador
-      this.time = 0
-    },
-    openAppList() {
-      ipcRenderer.invoke('get-open-windows').then((windows) => {
-        this.openWindows = windows
-        this.selectedIndex = 0
-        this.showAppList = true
-        this.$nextTick(() => {
-          this.$refs.modalContent.focus()
-        })
-      })
-    },
-    selectApp(app) {
-      this.selectedApp = app.appName
-      ipcRenderer.send('start-cronometro-monitoring', app.appName)
-      this.showAppList = false
-    },
-    closeAppList() {
-      this.showAppList = false
-    },
-    handleKeydown(e) {
-      if (e.key === 'ArrowDown') {
-        this.selectedIndex = (this.selectedIndex + 1) % this.openWindows.length
-      } else if (e.key === 'ArrowUp') {
-        this.selectedIndex = (this.selectedIndex - 1 + this.openWindows.length) % this.openWindows.length
-      } else if (e.key === 'Enter') {
-        const app = this.openWindows[this.selectedIndex]
-        if (app) this.selectApp(app)
-      } else if (e.key === 'Escape') {
-        this.closeAppList()
-      }
-    },
-    listenForAppStatus() {
-      ipcRenderer.on('app-active', (event, data) => {
-        const { isActive } = data
-        console.log('App active:', isActive)
-        if (isActive) {
-          this.resumeTime()
-        } else {
-          this.pauseTime()
-        }
-      })
-    },
-    resumeTime() {
-      if (!this.running) {
-        this.running = true
-        const startTime = Date.now() - this.time
-        this.intervalId = setInterval(() => {
-          this.time = Date.now() - startTime
-        }, 10)
-      }
-    },
-    pauseTime() {
-      this.running = false
-      clearInterval(this.intervalId)
-    },
-    // ===== Utilidades de formateo =====
-    msToHHMMSS(ms) {
-      const totalSeconds = Math.floor(ms / 1000)
-      const hours = Math.floor(totalSeconds / 3600)
-      const minutes = Math.floor((totalSeconds % 3600) / 60)
-      const seconds = totalSeconds % 60
-      return [hours, minutes, seconds]
-        .map((v) => (v < 10 ? '0' + v : v))
-        .join(':')
-    },
-    formatTimeHHMMSS(dateObj) {
-      const hh = String(dateObj.getHours()).padStart(2, '0')
-      const mm = String(dateObj.getMinutes()).padStart(2, '0')
-      const ss = String(dateObj.getSeconds()).padStart(2, '0')
-      return `${hh}:${mm}:${ss}`
-    },
-    formatDateYYYYMMDD(dateObj) {
-      const yyyy = dateObj.getFullYear()
-      const mm = String(dateObj.getMonth() + 1).padStart(2, '0')
-      const dd = String(dateObj.getDate()).padStart(2, '0')
-      return `${yyyy}-${mm}-${dd}`
-    },
   },
-  mounted() {
-    this.listenForAppStatus()
-  },
-  beforeUnmount() {
-    clearInterval(this.intervalId)
-  }
 }
 </script>
 
@@ -247,19 +95,10 @@ export default {
 }
 .header-wrapper {
   display: flex;
-}
-.app-icon-inline {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-}
-
-.app-icon-inline img {
+  position: relative;
   width: 100%;
-  height: 100%;
+  justify-content: center;
 }
-
 .display {
   display: inline;
   font-size: 2rem;
@@ -285,30 +124,30 @@ export default {
 
 }
 
+.button-add {
+  position: absolute;
+  right: 0;
+  top: 0;
+  background-color: transparent;
+  color: #f0f0f0;
+  font-size: 1.1rem;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.3s ease-in-out;
+}
+.button-add:hover:not(:disabled) {
+  color: #d3d3d3;
+}
+.button-add:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .controls {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 50px;
-}
-
-.controls button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  margin: 0;
-  padding: 0.5rem 1rem;
-  font-size: 1.5rem;
-  color: #f0f0f0;
-  transition: transform 0.2s ease-in-out;
-}
-
-.controls button:hover {
-  transform: scale(1.2);
-}
-
-.controls button:focus {
-  outline: none;
 }
 
 .selected-app {
@@ -353,7 +192,6 @@ export default {
   padding: 8px;
   cursor: pointer;
 }
-.modal-content li.selected,
 .modal-content li:hover {
   background-color: rgba(255,255,255,0.3);
 }

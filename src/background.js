@@ -7,8 +7,10 @@ import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 const activeWin = require('active-win')
 const path = require('path')
 const isDevelopment = process.env.NODE_ENV !== 'production'
-const { exec } = require('child_process');
 const fs = require('fs')
+const platformWindows = require('./main/platform-windows.js')
+const monitorEngine = require('./main/monitor-engine.js')
+const { registerIpcHandlers } = require('./main/ipc-handlers.js')
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
@@ -17,7 +19,6 @@ protocol.registerSchemesAsPrivileged([
 
 let mainWindow = null
 let tray = null
-let cronometroInterval = null // Intervalo para el cronómetro
 let alwaysOnTopInterval = null // Intervalo para alwaysOnTop
 
 
@@ -76,6 +77,13 @@ async function createWindow() {
   },
   })
   Menu.setApplicationMenu(null);
+
+  // Registra el contrato IPC del motor de monitoreo y de Opciones (Tarea 15),
+  // y carga la selección guardada antes de que el renderer pida el primer
+  // snapshot (D2/ADR-0002).
+  registerIpcHandlers(mainWindow)
+  monitorEngine.loadSelection()
+
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
     await mainWindow .loadURL(process.env.WEBPACK_DEV_SERVER_URL)
@@ -103,7 +111,30 @@ function showMainWindow() {
   mainWindow.focus()
 }
 
-app.whenReady().then(() => {
+// Único camino de arranque (fix C1, judgment-fixes-iteration-1). Antes había
+// dos listeners de 'ready' —este `whenReady().then()` y un `app.on('ready')`
+// que vivía después de todos los handlers de IPC, ambos duplicados ya en la
+// base previa al cambio y ahora eliminado— que llamaban createWindow() cada
+// uno. La duplicación era inofensiva hasta que este cambio movió
+// registerIpcHandlers(mainWindow) adentro de createWindow():
+// ipcMain.handle() lanza al registrar un canal ya registrado, así que la
+// segunda invocación reasignaba `mainWindow` (línea de BrowserWindow más
+// abajo) y lanzaba antes de loadURL() y de mainWindow.on('close'), dejando la
+// ventana con la interfaz cargada huérfana y sin handler de cierre.
+// Se consolida en un único listener en vez de agregar un guard de
+// idempotencia en registerIpcHandlers: ese guard solo enmascararía el
+// síntoma (seguiría creándose una ventana de más en cada arranque), mientras
+// que la causa raíz es el doble createWindow().
+app.whenReady().then(async () => {
+  if (isDevelopment && !process.env.IS_TEST) {
+    // Install Vue Devtools
+    try {
+      await installExtension(VUEJS3_DEVTOOLS)
+    } catch (e) {
+      console.error('Vue Devtools failed to install:', e.toString())
+    }
+  }
+
   globalShortcut.register('CommandOrControl+Shift+I', () => {
     if (mainWindow) {
       mainWindow.webContents.openDevTools()
@@ -113,83 +144,10 @@ app.whenReady().then(() => {
   createWindow()
 })
 
-ipcMain.handle('get-open-windows', () => {
-  return new Promise((resolve, reject) => {
-    // Ejecuta un comando PowerShell para obtener procesos con ventana principal no vacía
-    const cmd = `powershell -Command " Get-Process | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object @{Name='appName'; Expression={ if ($_.Description) { $_.Description } else { $_.Name }}} | ConvertTo-Json "`;
-    // eslint-disable-next-line no-unused-vars
-    exec(cmd, (error, stdout, stderr) => {
-      if (error) {
-        return reject(error)
-      }
-      try {
-        const result = JSON.parse(stdout.trim())
-        // Si solo se devuelve un objeto (cuando hay un solo proceso), lo convertimos a array
-        const windows = Array.isArray(result) ? result : [result]
-        resolve(windows);
-      } catch (parseError) {
-        reject(parseError)
-      }
-    })
-  })
-})
-
-let currentAppName = null
-
-ipcMain.on('start-cronometro-monitoring', async (event, appName) => {
-  if (cronometroInterval) {
-    // Si la app seleccionada es la misma, no hagas nada
-    if (appName === currentAppName) {
-      console.log(`El monitoreo de "${appName}" ya está activo.`)
-      return
-    }
-    // Si se selecciona una nueva app, detener el monitoreo anterior
-    clearInterval(cronometroInterval)
-    cronometroInterval = null
-    console.log(`Cambiando monitoreo a nueva aplicación: ${appName}`)
-  }
-
-  // Actualizar la app seleccionada
-  currentAppName = appName
-
-  // Obtener la información de la ventana activa
-  const winInfo = await activeWin()
-  if (winInfo && winInfo.owner && winInfo.owner.name === appName) {
-    const exePath = winInfo.owner.path
-    console.log(`Proceso seleccionado: ${exePath}`)
-
-    // Enviar el icono solo una vez al iniciar
-    mainWindow.webContents.send('app-active', {
-      isActive: true,
-    })
-  }
-
-  // Iniciar el intervalo para monitorear la ventana activa
-  cronometroInterval = setInterval(async () => {
-    const winInfo = await activeWin()
-    if (winInfo && winInfo.owner && winInfo.owner.name === appName) {
-      // Si la app está activa, enviar solo el estado, sin cambiar el icono
-      mainWindow.webContents.send('app-active', {
-        isActive: true,
-      })
-    } else {
-      // Si pierde el foco, pausar cronómetro
-      mainWindow.webContents.send('app-active', {
-        isActive: false,
-      })
-    }
-  }, 1000) // Verificación cada 1 segundo
-  console.log(`Monitoreo de "${appName}" para el cronómetro iniciado.`)
-})
-
-ipcMain.on('stop-cronometro-monitoring', () => {
-  if (cronometroInterval) {
-    clearInterval(cronometroInterval)
-    cronometroInterval = null
-    mainWindow.webContents.send('app-active', false)
-    console.log('Monitoreo para el cronómetro detenido.')
-  }
-})
+// Delegado en platform-windows.js (Tarea 9): el handler conserva el nombre de
+// canal y el campo `appName` que TitleBar.vue ya consume, extendido con
+// `exePath`/`pid` para el selector nuevo (Tarea 28).
+ipcMain.handle('get-open-windows', () => platformWindows.listOpenWindows())
 
 ipcMain.on('start-monitoring-active-window', async (event, appName) => {
   if (alwaysOnTopInterval) return; // Evitar intervalos duplicados
@@ -225,12 +183,16 @@ ipcMain.on('open-history-window', () => {
     height: 600,
     title: 'Historial',
     frame: false,
+    backgroundColor: '#1b1b1b',
+    show: false,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
       enableRemoteModule: true,
     }
   })
+
+  historyWindow.once('ready-to-show', () => historyWindow.show())
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     historyWindow.loadURL(`${process.env.WEBPACK_DEV_SERVER_URL}history.html`)
@@ -242,17 +204,6 @@ ipcMain.on('open-history-window', () => {
 })
 
 const logFilePath = path.join(app.getPath('userData'), 'usage-log.txt')
-
-ipcMain.on('save-log-line', (event, line) => {
-  fs.appendFile(logFilePath, line + '\n', (err) => {
-    if (err) {
-      console.error('Error al escribir el log:', err)
-      return
-    }
-    console.log('Línea de log guardada en:', logFilePath)
-  })
-})
-
 
 ipcMain.handle('get-app-logs', async () => {
   console.log(`Leyendo el archivo de log: ${logFilePath}`)
@@ -319,18 +270,6 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow()
 })
 
-
-app.on('ready', async () => {
-  if (isDevelopment && !process.env.IS_TEST) {
-    // Install Vue Devtools
-    try {
-      await installExtension(VUEJS3_DEVTOOLS)
-    } catch (e) {
-      console.error('Vue Devtools failed to install:', e.toString())
-    }
-  }
-  createWindow()
-})
 
 // Exit cleanly on request from parent process in development mode.
 if (isDevelopment) {
