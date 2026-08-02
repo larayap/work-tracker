@@ -15,17 +15,33 @@ function filterByInterval(entries, from, to) {
   return entries.filter((entry) => entry.date >= from && entry.date <= to)
 }
 
-// aggregateByApp(entries) → [{ appId, app, durationMs }] — suma `durationMs`
-// por `appId`/`app`, orden descendente por duración total.
+// groupKeyOf(entry) → String — clave de agrupación de `aggregateByApp`. Todas
+// las entradas migradas desde el log de texto tienen `appId: null` (el
+// formato viejo nunca registró la ruta del ejecutable): agrupar por `appId`
+// desnudo colapsa TODOS los programas de una migración en una sola fila
+// (fix F1, judgment-report iteración 1). Con `appId` ausente, la clave
+// degrada al nombre del programa — mismo criterio de degradación que
+// `degradedAppId` en `monitor-engine.js` (prefijo para no colisionar con un
+// `appId` real que casualmente coincida con un nombre).
+function groupKeyOf(entry) {
+  return entry.appId != null ? entry.appId : `name:${entry.app}`
+}
+
+// aggregateByApp(entries) → [{ key, appId, app, durationMs }] — suma
+// `durationMs` por `groupKeyOf(entry)`, orden descendente por duración
+// total. `key` viaja en cada fila para que los consumidores (`v-for`) tengan
+// una clave única incluso entre filas degradadas con `appId: null` — usar
+// `appId` ahí reintroduce la colisión que este agregador resuelve.
 function aggregateByApp(entries) {
   const totals = new Map()
 
   entries.forEach((entry) => {
-    const existing = totals.get(entry.appId)
+    const key = groupKeyOf(entry)
+    const existing = totals.get(key)
     if (existing) {
       existing.durationMs += entry.durationMs
     } else {
-      totals.set(entry.appId, { appId: entry.appId, app: entry.app, durationMs: entry.durationMs })
+      totals.set(key, { key, appId: entry.appId, app: entry.app, durationMs: entry.durationMs })
     }
   })
 

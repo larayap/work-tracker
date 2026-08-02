@@ -7,7 +7,7 @@
       </tr>
     </thead>
     <tbody>
-      <tr v-for="row in rows" :key="row.appId">
+      <tr v-for="row in rows" :key="row.key">
         <td>{{ formatDuration(row.durationMs) }}</td>
         <td>{{ row.app }}</td>
       </tr>
