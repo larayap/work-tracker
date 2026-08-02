@@ -5,6 +5,7 @@
 'use strict'
 
 const { exec } = require('child_process')
+const { app } = require('electron')
 const activeWin = require('active-win')
 
 // ---------------------------------------------------------------------------
@@ -99,9 +100,27 @@ function listOpenWindows() {
   })
 }
 
+// ---------------------------------------------------------------------------
+// Ícono de un ejecutable (D9/ADR-0005). Funciona con el programa cerrado: la
+// extracción es por ruta de archivo, no depende de un proceso vivo.
+// ---------------------------------------------------------------------------
+
+// getExecutableIcon(exePath) → Promise<String|null> — data URL, o null si la
+// extracción falla o la imagen resulta vacía (el llamador decide el respaldo).
+async function getExecutableIcon(exePath) {
+  try {
+    const icon = await app.getFileIcon(exePath, { size: 'normal' })
+    if (!icon || icon.isEmpty()) return null
+    return icon.toDataURL()
+  } catch (err) {
+    return null
+  }
+}
+
 module.exports = {
   getForegroundWindow,
   isProcessAlive,
   listRunningProcesses,
   listOpenWindows,
+  getExecutableIcon,
 }
