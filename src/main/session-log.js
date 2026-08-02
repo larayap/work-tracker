@@ -46,8 +46,13 @@ function migrateLegacyLog() {
 
 // appendSessions(rows, endDate) — construye una entrada por cada `row` (mismo
 // shape que produce el parser de migración) y escribe **una sola vez**
-// (D-4/ADR-0009: antes de `before-quit`, síncrono — `jsonStore.writeJson` ya
-// es `fs.writeFileSync`, sin cambios necesarios acá).
+// (D-4/ADR-0009: antes de `before-quit`, síncrono). La escritura usa
+// `jsonStore.writeJsonAtomic` (fix F3, judgment-report iteración 1): el
+// historial completo se reescribe en cada cierre, y uno de los llamadores es
+// `closeAllRows` desde `before-quit` — el instante de mayor probabilidad de
+// interrupción del proceso de todo el ciclo de vida. `writeJson` desnudo
+// dejaba el archivo entero truncado ante esa interrupción; tmp+rename deja
+// el historial previo intacto o el nuevo completo, nunca a medio escribir.
 function appendSessions(rows, endDate) {
   if (rows.length === 0) return
 
@@ -70,7 +75,7 @@ function appendSessions(rows, endDate) {
     })
   })
 
-  jsonStore.writeJson(getSessionsFilePath(), sessions)
+  jsonStore.writeJsonAtomic(getSessionsFilePath(), sessions)
 }
 
 // appendSession(row, endDate) — se mantiene exportada para los llamadores
