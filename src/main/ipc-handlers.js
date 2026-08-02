@@ -8,6 +8,7 @@ const path = require('path')
 const { app, ipcMain } = require('electron')
 const monitorEngine = require('./monitor-engine.js')
 const jsonStore = require('./json-store.js')
+const iconCache = require('./icon-cache.js')
 
 function getSettingsFilePath() {
   return path.join(app.getPath('userData'), 'settings.json')
@@ -31,6 +32,10 @@ function registerIpcHandlers(mainWindow) {
   ipcMain.on('stop-monitored-row', (event, appId) => {
     monitorEngine.closeRow(appId, 'user-stop')
   })
+
+  ipcMain.handle('get-app-icon', (event, exePath) =>
+    iconCache.getIcon(exePath).then((dataUrl) => ({ exePath, dataUrl }))
+  )
 
   ipcMain.handle('get-settings', () => jsonStore.readJson(getSettingsFilePath(), defaultSettings))
 
