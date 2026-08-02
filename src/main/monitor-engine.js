@@ -306,15 +306,23 @@ function loadSelection() {
   if (selection.length > 0) startEngine()
 }
 
-// addToSelection({ appId, name, exePath }) — agrega si no existe ya ese appId
-// y crea su fila de inmediato (D6/row-lifecycle: agregar muestra la fila sin
-// esperar evidencia de vida). La fila nace con `pid: null` y espera — no es
-// candidata a baja hasta que se observe una transición real de vivo a muerto
-// (D6). El límite de 4 sigue teniendo precedencia sobre el alta inmediata
-// (D7): con el listado lleno, el programa queda en la selección sin fila
-// hasta que se libere un lugar.
-function addToSelection({ appId, name, exePath }) {
-  const id = appId || normalizeAppId({ exePath, imageName: name })
+// addToSelection({ appId, name, exePath, imageName }) — agrega si no existe
+// ya ese appId y crea su fila de inmediato (D6/row-lifecycle: agregar muestra
+// la fila sin esperar evidencia de vida). La fila nace con `pid: null` y
+// espera — no es candidata a baja hasta que se observe una transición real de
+// vivo a muerto (D6). El límite de 4 sigue teniendo precedencia sobre el alta
+// inmediata (D7): con el listado lleno, el programa queda en la selección sin
+// fila hasta que se libere un lugar.
+//
+// `imageName` (fix C2, judgment-fixes-iteration-1): cuando no hay `appId`
+// explícito ni `exePath` resoluble (vía de procesos abiertos degradada), el
+// `appId` degradado que D4 especifica se arma sobre el nombre de imagen real
+// — el mismo formato que devuelve `tasklist` en el tick de descubrimiento
+// (líneas más abajo) — nunca sobre `name`, que es la descripción legible que
+// se muestra en la fila y no tiene por qué coincidir con ningún nombre de
+// imagen.
+function addToSelection({ appId, name, exePath, imageName }) {
+  const id = appId || normalizeAppId({ exePath, imageName })
 
   if (!selection.some((entry) => entry.appId === id)) {
     selection.push({ appId: id, name, exePath: exePath || null, addedAt: Date.now() })

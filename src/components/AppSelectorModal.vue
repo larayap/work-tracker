@@ -128,8 +128,15 @@ export default {
     chooseOpenWindow(win) {
       if (this.monitoredApps.limitReached) return
       // Sin `appId`: el main lo normaliza (D4) — por ruta si `exePath`
-      // resolvió, por nombre de imagen en el caso degradado si no.
-      this.monitoredApps.addApp({ name: win.appName, exePath: win.exePath || null })
+      // resolvió, por `win.imageName` (nombre de imagen real, no
+      // `win.appName`) en el caso degradado si no (fix C2,
+      // judgment-fixes-iteration-1: `appName` es una descripción sin
+      // extensión, nunca coincide con lo que devuelve `tasklist`).
+      this.monitoredApps.addApp({
+        name: win.appName,
+        exePath: win.exePath || null,
+        imageName: win.imageName,
+      })
     },
   },
 }

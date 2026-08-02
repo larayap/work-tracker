@@ -21,8 +21,11 @@ export const useMonitoredAppsStore = defineStore('monitoredApps', {
       this.selection = payload.selection
       this.limitReached = payload.limitReached
     },
-    async addApp({ appId, name, exePath }) {
-      const snapshot = await ipcRenderer.invoke('add-to-selection', { appId, name, exePath })
+    // `imageName` viaja además de `name` (fix C2, judgment-fixes-iteration-1):
+    // es el nombre de imagen real que necesita el `appId` degradado (D4),
+    // distinto del nombre legible `name` que se muestra en la fila.
+    async addApp({ appId, name, exePath, imageName }) {
+      const snapshot = await ipcRenderer.invoke('add-to-selection', { appId, name, exePath, imageName })
       this.applySnapshot(snapshot)
     },
     async removeApp(appId) {
