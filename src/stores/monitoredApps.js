@@ -34,9 +34,13 @@ export const useMonitoredAppsStore = defineStore('monitoredApps', {
       // suscripto más abajo.
       ipcRenderer.send('stop-monitored-row', appId)
     },
-    // Cuerpo mínimo por ahora: el canal `get-app-icon` recién existe desde la
-    // Tarea 22 (Bloque 4), que completa esta action.
-    async ensureIcon() {},
+    // ensureIcon(exePath) — pide el ícono si falta y lo cachea en `icons`
+    // (canal `get-app-icon`, Tarea 22).
+    async ensureIcon(exePath) {
+      if (!exePath || this.icons[exePath]) return
+      const { dataUrl } = await ipcRenderer.invoke('get-app-icon', exePath)
+      this.icons[exePath] = dataUrl
+    },
     init() {
       ipcRenderer.invoke('get-monitored-snapshot').then((snapshot) => this.applySnapshot(snapshot))
       ipcRenderer.on('monitored-apps-state', (event, snapshot) => this.applySnapshot(snapshot))
