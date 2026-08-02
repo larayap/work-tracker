@@ -7,7 +7,7 @@
       <h1 style="margin: 0;">Work</h1>
       <button
         class="button-add"
-        @click="openAppList"
+        @click="showSelector = true"
         :disabled="monitoredApps.limitReached"
         title="Agregar aplicación"
       >
@@ -28,26 +28,7 @@
       @stop="monitoredApps.stopRow(row.appId)"
     />
 
-    <!-- Modal para seleccionar la aplicación. Placeholder hasta el Bloque 5:
-         apunta al modal viejo de procesos abiertos, actualizado para agregar
-         a la selección guardada del motor nuevo en vez del canal viejo.
-         AppSelectorModal.vue lo reemplaza en la Tarea 29. -->
-    <div v-if="showAppList" class="modal-overlay" @click.self="closeAppList">
-      <div class="modal-content" ref="modalContent" tabindex="0" @keydown="handleKeydown">
-        <h3>Selecciona una aplicación</h3>
-        <ul>
-          <li
-            v-for="(app, index) in openWindows"
-            :key="index"
-            :class="{ selected: index === selectedIndex }"
-            @click="selectApp(app)"
-          >
-            {{ app.appName }}
-          </li>
-        </ul>
-        <button class="close-btn" @click="closeAppList">Cerrar lista</button>
-      </div>
-    </div>
+    <AppSelectorModal v-if="showSelector" @close="showSelector = false" />
 
     <!-- Modal de historial -->
     <div v-if="showHistory" class="modal-overlay" @click.self="showHistory = false">
@@ -72,19 +53,18 @@ import { faPlus, faBars } from '@fortawesome/free-solid-svg-icons'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { useMonitoredAppsStore } from '@/stores/monitoredApps'
 import AppRow from '@/components/AppRow.vue'
+import AppSelectorModal from '@/components/AppSelectorModal.vue'
 const { ipcRenderer } = window.require('electron')
 
 library.add(faPlus, faBars)
 
 export default {
   name: 'CronometroComponent',
-  components: { FontAwesomeIcon, AppRow },
+  components: { FontAwesomeIcon, AppRow, AppSelectorModal },
   data() {
     return {
       monitoredApps: useMonitoredAppsStore(),
-      openWindows: [], // Lista de ventanas abiertas
-      showAppList: false, // Mostrar el modal
-      selectedIndex: 0, // Índice de la app seleccionada
+      showSelector: false, // Mostrar AppSelectorModal
     }
   },
   created() {
@@ -98,36 +78,6 @@ export default {
   methods: {
     openHistoryWindow() {
       ipcRenderer.send('open-history-window')
-    },
-    openAppList() {
-      if (this.monitoredApps.limitReached) return
-      ipcRenderer.invoke('get-open-windows').then((windows) => {
-        this.openWindows = windows
-        this.selectedIndex = 0
-        this.showAppList = true
-        this.$nextTick(() => {
-          this.$refs.modalContent.focus()
-        })
-      })
-    },
-    selectApp(app) {
-      this.monitoredApps.addApp({ name: app.appName, exePath: app.exePath || null })
-      this.showAppList = false
-    },
-    closeAppList() {
-      this.showAppList = false
-    },
-    handleKeydown(e) {
-      if (e.key === 'ArrowDown') {
-        this.selectedIndex = (this.selectedIndex + 1) % this.openWindows.length
-      } else if (e.key === 'ArrowUp') {
-        this.selectedIndex = (this.selectedIndex - 1 + this.openWindows.length) % this.openWindows.length
-      } else if (e.key === 'Enter') {
-        const app = this.openWindows[this.selectedIndex]
-        if (app) this.selectApp(app)
-      } else if (e.key === 'Escape') {
-        this.closeAppList()
-      }
     },
   },
 }
@@ -242,7 +192,6 @@ export default {
   padding: 8px;
   cursor: pointer;
 }
-.modal-content li.selected,
 .modal-content li:hover {
   background-color: rgba(255,255,255,0.3);
 }
