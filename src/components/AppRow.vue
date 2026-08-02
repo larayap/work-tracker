@@ -41,7 +41,15 @@ export default {
   emits: ['stop'],
   data() {
     return {
-      fallbackIcon: require('@/assets/idk.png'),
+      // Respaldo local del renderer: doble propósito, no solo error del IPC.
+      // 1) Placeholder instantáneo mientras `ensureIcon` resuelve el ícono
+      //    real (evita un parpadeo en blanco en cada apertura, ver
+      //    `stores/monitoredApps.js`). 2) Defensa en profundidad si el canal
+      //    `get-app-icon` fallara. El mecanismo primario del respaldo sigue
+      //    siendo `icon-cache.js` (D9); este `require` apunta al mismo
+      //    archivo físico bajo `public/img/` (sin duplicar el asset) para
+      //    que el webpack del renderer lo procese como imagen del bundle.
+      fallbackIcon: require('../../public/img/idk.png'),
     }
   },
   computed: {
