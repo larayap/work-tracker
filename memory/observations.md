@@ -183,3 +183,139 @@ declarado también en el judgment-report):
 Ninguno de los dos fixes tocó lógica fuera de los archivos y funciones que
 señalaba el judgment-report; no se aprovechó la iteración para refactorizar
 nada adicional (alcance acotado explícito del despacho).
+
+## 2026-08-02 | debt-candidate | Modal de historial muerto en CronometroAplicacion.vue
+
+**Detectado por**: sdd-explore en `sessions-groups-history`
+**Ubicación**: `src/components/CronometroAplicacion.vue` líneas 33-45 (template) y 61-84 (script)
+**Descripción**: El template referencia `showHistory`, `selectedDate`, `filteredLogs` y
+`loadLogsForDate`, ninguno de los cuales existe en `data()`, `computed` ni `methods` del
+componente. El botón que abre el historial real (`openHistoryWindow()`, línea 79) envía
+`open-history-window` por IPC y abre la ventana separada de `src/history/HistoryView.vue` —
+funciona. El bloque `<div v-if="showHistory">` es un segundo modal de historial, inline,
+que nunca puede mostrarse (`showHistory` es siempre `undefined`, por lo tanto falsy) y
+duplica el propósito de la ventana real con una UI distinta (tabla plana con
+inicio/fin/duración por línea de log, sin agrupar). Es probable que sea un remanente de una
+implementación anterior a la ventana de historial separada. Este cambio (`sessions-groups-history`)
+toca tanto `CronometroAplicacion.vue` (punto 1, deselección) como el historial (puntos 5-6),
+así que es candidato a limpiar en el mismo cambio o a extraer como debt separado si no encaja
+en el alcance de `sdd-design`.
+**Promoción sugerida**: `sdd new remove-dead-history-modal --domain debt` (si `sdd-design` de
+este cambio decide no tocarlo directamente al modificar `CronometroAplicacion.vue`)
+
+## 2026-08-02 | architecture | Historial estructurado en sessions.json con migración one-shot
+
+Decisión: el historial pasa de `usage-log.txt` (texto plano + regex) a `sessions.json`
+estructurado, con lectura y escritura en un único módulo (`session-log.js`) y migración
+one-shot idempotente que publica por renombre y nunca borra el original.
+Justificación: tres campos nuevos escritos por el usuario o por el modelo de grupos
+(`sessionName`, `groupId`, `groupName`) y una consulta por rango arbitrario vuelven
+insostenible el formato de texto. Enmienda —no supersede— la cláusula de ADR-0006 que
+conservaba `usage-log.txt`; el resto de ADR-0006 sigue vigente y `sessions.json` lo obedece.
+ADR: [[0007-structured-sessions-json-with-one-shot-migration]]
+
+## 2026-08-02 | architecture | Sesiones y grupos como metadata sobre entradas, no entidades
+
+Decisión: `sessionName`, `groupId` y `groupName` son campos de la fila en memoria del main,
+copiados a la entrada del historial al cerrarse. No hay colección de grupos, ni archivo de
+grupos, ni total persistido: todo total de grupo es derivado (suma de duraciones del período).
+La pertenencia a un grupo viaja como intención al main; el renderer nunca es dueño de ese
+estado (ADR-0002).
+ADR: [[0008-sessions-and-groups-as-entry-metadata]]
+
+## 2026-08-02 | architecture | Selección tipada manual/auto con baja atómica en el reductor
+
+Decisión: campo `type` en `monitored-selection.json` (ausente = `auto`), y la baja de la
+entrada manual se resuelve **dentro de `reduceLifecycle`**, en el mismo paso que la baja de la
+fila y antes de evaluar altas. El reductor pasa a devolver `{ rows, selection, closed }` y
+sigue siendo puro. Resuelve por construcción el riesgo de probabilidad Alta de la propuesta
+(fila que renace en el mismo tick + sesión fantasma de 0-1s).
+ADR: [[0009-typed-selection-with-atomic-manual-removal]]
+
+## 2026-08-02 | architecture | Librería de gráficos confinada al bundle de historial
+
+Decisión: `chart.js@^4` + `vue-chartjs@^5` entran como dependencias nuevas, importadas
+exclusivamente desde `src/history/`. La ventana del cronómetro no carga código de graficado.
+Registro tree-shakable explícito, sin adaptador de fechas (el gráfico agrega por aplicación,
+no por fecha).
+ADR: [[0010-charting-library-confined-to-history-bundle]]
+
+## 2026-08-02 | bug | Historial consulta el día equivocado por la tarde (zona horaria)
+
+**Detectado por**: sdd-design en `sessions-groups-history` (validación V15)
+**Ubicación**: `src/history/HistoryView.vue:81` (`loadLogsForDate`)
+**Descripción**: filtra con `date.toISOString().split('T')[0]` (UTC) contra un campo `date`
+que `src/main/session-log.js` escribe en hora **local** vía `formatDateYYYYMMDD`. Verificado
+con `TZ=America/Santiago`: una fecha local del 2 de agosto a las 21:00 produce `2026-08-03`
+por `toISOString()`. Efecto observable: abrir la ventana de historial después de ~20:00 en
+Chile (UTC-4) consulta el día siguiente y muestra la lista vacía. Es **preexistente**, no
+introducido por este cambio.
+**Resolución**: entra en alcance de este cambio (D-10 de `design.md`): toda la ventana de
+historial pasa a usar `formatDateYYYYMMDD` como fuente única de la fecha. Sin esto, el
+criterio de aceptación "el gráfico coincide con la lista por aplicación" falla por la tarde.
+
+## 2026-08-02 | finding | Duplicados en el listado de instaladas: 11 appId, no 3
+
+**Detectado por**: sdd-design en `sessions-groups-history` (validación V8)
+**Descripción**: `sdd-explore` estimó 3 entradas duplicadas en `installed-apps-cache.json`
+(todas archivos de ayuda de WinRAR). El análisis completo del archivo real (106 entradas)
+encuentra **11 `appId` repetidos**, y alcanzan a ejecutables legítimos: Steam, VLC (×3),
+WinRAR, Cursor, Ollama, Python, wslg y MySQL. Tras el filtro `.exe` la deduplicación quita
+**9 filas**, no 3. Resultado del filtro completo verificado: 106 → 91 (`.exe`) → 82 (dedup).
+No cambia la decisión de alcance (la dedup ya estaba incluida), sí su magnitud e impacto
+percibido: el defecto afectaba programas que el usuario reconoce, no solo ruido.
+
+## 2026-08-02 | debt-candidate | Modal de historial muerto: RESUELTO en este cambio
+
+**Actualización de la observación del 2026-08-02 (sdd-explore)**: el modal muerto de
+`CronometroAplicacion.vue` (template 33-45) entra en alcance de `sessions-groups-history` y se
+elimina en la etapa 5 (D-10 de `design.md`). Razón: este cambio ya reescribe ese componente
+para el drag & drop de grupos, y el modal consume el canal `get-app-logs`, que D-9 elimina —
+dejarlo sería dejar código muerto apuntando a un canal inexistente. **No hace falta promover
+`remove-dead-history-modal` como cambio aparte.**
+
+## 2026-08-02 | env-quirk | global | `node_modules` ausente en el worktree — bloquea `node -e` sobre cualquier archivo que haga `require('electron')` en su nivel superior
+
+**Detectado por**: sdd-tasks en `sessions-groups-history`, al diseñar los criterios de
+completado de la migración de historial.
+**Descripción**: este worktree no tiene `node_modules` instalado. Cualquier módulo que haga
+`require('electron')` en el nivel superior del archivo (`monitor-engine.js`,
+`session-log.js`, `icon-cache.js`, `installed-apps.js`) falla con `MODULE_NOT_FOUND` al
+requerirlo con `node -e` plano, **incluso si la función que se quiere probar es pura y no usa
+`electron`** — el error ocurre al cargar el módulo, antes de llamar nada. Es preexistente a
+este cambio (ya afectaba a `reduceLifecycle`/`reduceFocus`, que `design.md` de
+`app-detection-logos-audio` ya documentaba como "verificables a mano" sin precisar el motivo).
+Con `npm install` corrido una vez, `require('electron')` fuera del runtime de Electron
+devuelve un string inofensivo en vez de lanzar, y el problema desaparece.
+**Mitigación aplicada en `sessions-groups-history`**: los módulos puros nuevos
+(`src/utils/session-aggregate.js`, `src/main/session-log-parser.js`) se diseñaron sin
+ninguna dependencia de `npm` (solo `fs`/`path` del núcleo de Node), precisamente para que la
+verificación con `node -e` no dependa de si `npm install` ya corrió. Ver `tasks.md` de este
+cambio, sección "Refinamiento respecto de `design.md`", para el detalle completo.
+**Promoción sugerida**: si esto sigue mordiendo verificaciones futuras, considerar un
+`sdd new document-electron-require-quirk --domain debt` que deje esta convención (separar
+lógica pura de módulos que requieren `electron`) explícita en `_profile.md`.
+
+## 2026-08-02 | env-fix | package.json | Dependencia muerta `fluid-dnd` bloqueaba `npm install` por completo — removida
+
+**Detectado por**: sdd-apply en `sessions-groups-history`, etapa 1, al intentar `npm install`
+para poder correr ESLint/build y los `node -e` de Tarea 7 que requieren `require('electron')`
+resuelto.
+**Descripción**: `package.json` declaraba `"fluid-dnd": "file:../draggapleFluid/fluid-dnd/fluid-dnd-1.3.3-beta.0.tgz"`
+apuntando a un archivo fuera del repo que no existe en este entorno (`_profile.md` ya lo
+señalaba como dependencia muerta y de reproducibilidad frágil, sin ninguna referencia en
+`src/`, junto con `@shopify/draggable`). `npm install` fallaba con `ENOENT` sobre esa ruta —
+bloqueo total, no solo de esta dependencia: sin `node_modules` no corre ESLint (`vue-cli-service
+lint` depende de plugins locales), no corre el build, y no se puede ejercitar
+`reduceLifecycle`/`reduceFocus` de `monitor-engine.js` con `node -e` (requieren `electron`
+resuelto, ver observación `env-quirk` anterior).
+**Acción tomada**: se removió la línea `fluid-dnd` de `dependencies` en `package.json` (grep
+confirmó cero referencias en `src/`) y se corrió `npm install`, que resolvió y actualizó
+`package-lock.json` en consecuencia. `@shopify/draggable` se dejó intacto — no bloqueaba el
+install y removerlo excede el alcance de `tasks.md`.
+**Riesgo**: es un cambio fuera de las 26 tareas de `tasks.md`, hecho por necesidad de
+infraestructura (sin él, la mitad de los criterios de completado de este cambio no son
+verificables). No afecta comportamiento observable de la aplicación.
+**Promoción sugerida**: `sdd new remove-dead-dnd-dependencies --domain debt` para evaluar
+remover también `@shopify/draggable` de forma prolija (con su propio commit y verificación),
+en vez de que quede como acción incidental de un cambio no relacionado.

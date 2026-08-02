@@ -43,6 +43,7 @@ function exeNameOf(targetPath) {
 function shouldDiscard(entry) {
   if (entry.targetExists === false) return true
   if (!entry.targetPath) return true
+  if (!entry.targetPath.toLowerCase().endsWith('.exe')) return true
   if (matchesAny(SYSTEM_PATH_PATTERNS, entry.targetPath)) return true
   if (entry.shortcutFolder && matchesAny(SYSTEM_FOLDER_PATTERNS, entry.shortcutFolder)) return true
   if (matchesAny(EXE_NAME_DISCARD_PATTERNS, exeNameOf(entry.targetPath))) return true
@@ -54,8 +55,10 @@ function shouldDiscard(entry) {
 }
 
 // filterInstalledApps(rawEntries) → InstalledApp[]
+// Deduplica por appId conservando la primera aparición (un mismo ejecutable
+// puede tener más de un acceso directo apuntándole).
 function filterInstalledApps(rawEntries) {
-  return rawEntries
+  const apps = rawEntries
     .filter((entry) => !shouldDiscard(entry))
     .map((entry) => ({
       appId: entry.targetPath.toLowerCase(),
@@ -63,6 +66,9 @@ function filterInstalledApps(rawEntries) {
       exePath: entry.targetPath,
       publisher: entry.publisher || null,
     }))
+
+  const seen = new Set()
+  return apps.filter((app) => !seen.has(app.appId) && seen.add(app.appId))
 }
 
 module.exports = { filterInstalledApps }
