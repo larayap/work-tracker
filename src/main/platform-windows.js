@@ -101,6 +101,63 @@ function listOpenWindows() {
 }
 
 // ---------------------------------------------------------------------------
+// Aplicaciones instaladas: fuente son los accesos directos .lnk del Menú
+// Inicio (D8/ADR-0003); el registro solo enriquece y marca descartes. Un
+// único proceso PowerShell hace las dos cosas.
+//
+// Nota de verificación: esta consulta PowerShell no se pudo ejecutar ni
+// sintaxear en este entorno (WSL2/Linux no tiene `powershell.exe`). La
+// correlación acceso-directo↔registro es best-effort (por `DisplayName`
+// exacto o por `InstallLocation` como prefijo del target) — si no hay match,
+// la entrada sigue adelante con los campos de registro en null/undefined y
+// queda sujeta solo a los descartes por ruta/nombre de `installed-apps-filter.js`.
+// Pendiente de verificación en Windows (Tarea 25 del tasks.md).
+// ---------------------------------------------------------------------------
+
+function buildInstalledAppsScript() {
+  return [
+    "$ErrorActionPreference = 'SilentlyContinue'",
+    '$shell = New-Object -ComObject WScript.Shell',
+    "$uninstallKeys = Get-ItemProperty 'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*','HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*','HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*' | Where-Object { $_.DisplayName }",
+    "$roots = @((Join-Path $env:ProgramData 'Microsoft\\Windows\\Start Menu\\Programs'), (Join-Path $env:APPDATA 'Microsoft\\Windows\\Start Menu\\Programs'))",
+    '$shortcuts = foreach ($root in $roots) { if (Test-Path $root) { Get-ChildItem -Path $root -Filter \'*.lnk\' -Recurse -ErrorAction SilentlyContinue } }',
+    '$result = foreach ($lnk in $shortcuts) { ' +
+      '$sc = $shell.CreateShortcut($lnk.FullName); ' +
+      '$targetPath = $sc.TargetPath; ' +
+      '$baseName = [System.IO.Path]::GetFileNameWithoutExtension($lnk.Name); ' +
+      '$match = $uninstallKeys | Where-Object { $_.DisplayName -eq $baseName -or ($_.InstallLocation -and $targetPath -and $targetPath.ToLower().StartsWith($_.InstallLocation.ToLower())) } | Select-Object -First 1; ' +
+      '[PSCustomObject]@{ ' +
+        'shortcutName = $baseName; ' +
+        'shortcutFolder = Split-Path $lnk.DirectoryName -Leaf; ' +
+        'targetPath = $targetPath; ' +
+        'targetExists = if ($targetPath) { Test-Path $targetPath } else { $false }; ' +
+        'publisher = if ($match) { $match.Publisher } else { $null }; ' +
+        'systemComponent = if ($match) { $match.SystemComponent } else { $null }; ' +
+        'parentKeyName = if ($match) { $match.ParentKeyName } else { $null }; ' +
+        'releaseType = if ($match) { $match.ReleaseType } else { $null } ' +
+      '} ' +
+    '}',
+    '$result | ConvertTo-Json -Depth 3',
+  ].join('; ')
+}
+
+// listInstalledCandidates() → Promise<RawInstalledEntry[]> — sin filtrar.
+function listInstalledCandidates() {
+  return new Promise((resolve, reject) => {
+    const cmd = `powershell -NoProfile -Command "${buildInstalledAppsScript()}"`
+    exec(cmd, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout) => {
+      if (error) return reject(error)
+      try {
+        const result = JSON.parse(stdout.trim() || '[]')
+        resolve(Array.isArray(result) ? result : [result])
+      } catch (parseError) {
+        reject(parseError)
+      }
+    })
+  })
+}
+
+// ---------------------------------------------------------------------------
 // Ícono de un ejecutable (D9/ADR-0005). Funciona con el programa cerrado: la
 // extracción es por ruta de archivo, no depende de un proceso vivo.
 // ---------------------------------------------------------------------------
@@ -122,5 +179,6 @@ module.exports = {
   isProcessAlive,
   listRunningProcesses,
   listOpenWindows,
+  listInstalledCandidates,
   getExecutableIcon,
 }
