@@ -1,37 +1,101 @@
-// Cierre y registro de sesión: la línea de historial y su append a
-// usage-log.txt. Absorbe la lógica que hoy vivía en
-// CronometroAplicacion.reset(), sin cambiar el formato consumido por
-// `get-app-logs` en background.js.
+// Dueño único de `sessions.json` (D-1/ADR-0007): lo carga una vez al
+// arrancar, lo mantiene parseado en memoria, y cada cierre hace `push` +
+// `jsonStore.writeJson` sincrónico — una sola escritura por invocación, nunca
+// una por fila. La migración one-shot desde `usage-log.txt` vive en
+// `session-log-parser.js` (Tarea 12/13, sin `electron`); acá solo se
+// resuelven las rutas reales con `app.getPath('userData')` y se delega.
 'use strict'
 
-const fs = require('fs')
 const path = require('path')
 const { app } = require('electron')
-const { msToHHMMSS, formatTimeHHMMSS, formatDateYYYYMMDD } = require('../utils/time-format.js')
+const jsonStore = require('./json-store.js')
+const { migrateLegacyLogAt } = require('./session-log-parser.js')
+const { filterByInterval } = require('../utils/session-aggregate.js')
+const { formatDateYYYYMMDD } = require('../utils/time-format.js')
 
-// buildSessionLine(row, endDate) → String — pura, mismo formato que generaba
-// CronometroAplicacion.reset(): "[YYYY-MM-DD HH:MM:SS] Aplicación: <name> | Duración: <HH:MM:SS> | Inicio: <HH:MM:SS> | Fin: <HH:MM:SS>"
-function buildSessionLine(row, endDate) {
-  const duration = msToHHMMSS(row.elapsedMs)
-  const startString = row.sessionStartedAt
-    ? formatTimeHHMMSS(new Date(row.sessionStartedAt))
-    : '00:00:00'
-  const endString = formatTimeHHMMSS(endDate)
-  const datePart = formatDateYYYYMMDD(endDate)
-  const timePart = formatTimeHHMMSS(endDate)
-  return `[${datePart} ${timePart}] Aplicación: ${row.name} | Duración: ${duration} | Inicio: ${startString} | Fin: ${endString}`
+let sessions = [] // estado en memoria, cargado una vez por migrateLegacyLog()
+let idCounter = 0 // sufijo del `id`, reinicia en cada arranque del proceso —
+// mismo criterio que el parser de migración (Tarea 12)
+
+function getSessionsFilePath() {
+  return path.join(app.getPath('userData'), 'sessions.json')
 }
 
-function getLogFilePath() {
+function getLegacyLogFilePath() {
   return path.join(app.getPath('userData'), 'usage-log.txt')
 }
 
-// appendSession(row, endDate) — construye la línea y la appendea a usage-log.txt.
-function appendSession(row, endDate) {
-  const line = buildSessionLine(row, endDate)
-  fs.appendFile(getLogFilePath(), line + '\n', (err) => {
-    if (err) console.error('Error al escribir el log:', err)
-  })
+function getLegacyBackupFilePath() {
+  return path.join(app.getPath('userData'), 'usage-log.txt.bak')
 }
 
-module.exports = { buildSessionLine, appendSession }
+// migrateLegacyLog() — se invoca una vez al arrancar, antes de
+// `monitorEngine.loadSelection()` (ADR-0007: si el motor pudiera abrir
+// sesiones antes de que esto corra, crearía `sessions.json` prematuramente y
+// la migración se saltearía). Al terminar, `sessions.json` existe siempre
+// (la migración lo garantiza, migrado o ya existente de antes), así que
+// cargarlo con `jsonStore.readJson` es seguro.
+function migrateLegacyLog() {
+  migrateLegacyLogAt({
+    sessionsPath: getSessionsFilePath(),
+    legacyPath: getLegacyLogFilePath(),
+    backupPath: getLegacyBackupFilePath(),
+  })
+  sessions = jsonStore.readJson(getSessionsFilePath(), [])
+}
+
+// appendSessions(rows, endDate) — construye una entrada por cada `row` (mismo
+// shape que produce el parser de migración) y escribe **una sola vez**
+// (D-4/ADR-0009: antes de `before-quit`, síncrono — `jsonStore.writeJson` ya
+// es `fs.writeFileSync`, sin cambios necesarios acá).
+function appendSessions(rows, endDate) {
+  if (rows.length === 0) return
+
+  const endedAt = endDate.getTime()
+  const date = formatDateYYYYMMDD(endDate) // nunca `toISOString()` (V15)
+
+  rows.forEach((row) => {
+    idCounter += 1
+    sessions.push({
+      id: `${endedAt}-${idCounter}`,
+      date,
+      appId: row.appId,
+      app: row.name,
+      startedAt: row.sessionStartedAt,
+      endedAt,
+      durationMs: row.elapsedMs,
+      sessionName: row.sessionName || null,
+      groupId: row.groupId || null,
+      groupName: row.groupName || null,
+    })
+  })
+
+  jsonStore.writeJson(getSessionsFilePath(), sessions)
+}
+
+// appendSession(row, endDate) — se mantiene exportada para los llamadores
+// existentes que cierran fila por fila (monitor-engine.js); delega en
+// `appendSessions` para no duplicar la construcción de la entrada.
+function appendSession(row, endDate) {
+  appendSessions([row], endDate)
+}
+
+// readSessions({ from, to }) → entradas del intervalo, ordenadas por
+// `startedAt` ascendente. Usa el mismo `filterByInterval` que el renderer
+// (D-8/D-9): un solo criterio de intervalo para main y renderer.
+function readSessions({ from, to }) {
+  return filterByInterval(sessions, from, to).sort((a, b) => a.startedAt - b.startedAt)
+}
+
+// listSessionDates() → fechas únicas, para los puntos del calendario.
+function listSessionDates() {
+  return [...new Set(sessions.map((entry) => entry.date))]
+}
+
+module.exports = {
+  migrateLegacyLog,
+  appendSession,
+  appendSessions,
+  readSessions,
+  listSessionDates,
+}

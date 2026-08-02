@@ -9,7 +9,22 @@
           title="Modalidad: solo esta vez"
         ></span>
       </div>
-      <span class="app-name" :title="row.name">{{ row.name }}</span>
+      <input
+        v-if="editing"
+        ref="nameInput"
+        v-model="draftName"
+        class="app-name-input"
+        @keyup.enter="confirmEdit"
+        @keyup.esc="cancelEdit"
+        @blur="cancelEdit"
+        @click.stop
+      />
+      <span
+        v-else
+        class="app-name"
+        :title="displayName"
+        @click="startEdit"
+      >{{ displayName }}</span>
       <div class="display">{{ formattedTime }}</div>
       <span
         class="status-indicator"
@@ -30,12 +45,18 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faPlay, faPause, faSquare } from '@fortawesome/free-solid-svg-icons'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { msToHHMMSS } from '@/utils/time-format.js'
+import { useMonitoredAppsStore } from '@/stores/monitoredApps'
 
 library.add(faPlay, faPause, faSquare)
 
-// Componente de presentación pura (D12): sin data() de estado propio, sin
-// timers, sin IPC directo. Recibe la fila y el ícono ya resueltos, emite una
-// única intención (`stop`).
+// Componente de presentación mayormente pura (D12): sin timers, sin IPC
+// directo propio. Recibe la fila y el ícono ya resueltos, emite una única
+// intención al padre (`stop`). La única excepción es la edición inline del
+// nombre de sesión (Tarea 19, `inline-session-naming`): estado puramente
+// local (`editing`/`draftName`, nunca reemplazado por el snapshot) que, al
+// confirmar, llama directo al store — mismo patrón que usan las acciones de
+// intención del store (`stopRow`, `setRowGroup`): sin respuesta, el snapshot
+// siguiente ya trae el nombre nuevo.
 export default {
   name: 'AppRow',
   components: { FontAwesomeIcon },
@@ -46,6 +67,9 @@ export default {
   emits: ['stop'],
   data() {
     return {
+      monitoredApps: useMonitoredAppsStore(),
+      editing: false,
+      draftName: '',
       // Respaldo local del renderer: doble propósito, no solo error del IPC.
       // 1) Placeholder instantáneo mientras `ensureIcon` resuelve el ícono
       //    real (evita un parpadeo en blanco en cada apertura, ver
@@ -60,6 +84,25 @@ export default {
   computed: {
     formattedTime() {
       return msToHHMMSS(this.row.elapsedMs)
+    },
+    // Sin nombre propio, se ve exactamente igual que antes de esta
+    // funcionalidad: el nombre del programa.
+    displayName() {
+      return this.row.sessionName || this.row.name
+    },
+  },
+  methods: {
+    startEdit() {
+      this.draftName = this.row.sessionName || ''
+      this.editing = true
+      this.$nextTick(() => this.$refs.nameInput && this.$refs.nameInput.focus())
+    },
+    confirmEdit() {
+      this.monitoredApps.renameSession(this.row.appId, this.draftName)
+      this.editing = false
+    },
+    cancelEdit() {
+      this.editing = false
     },
   },
 }
@@ -121,6 +164,17 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   color: #f0f0f0;
+  cursor: text;
+}
+
+.app-name-input {
+  margin-left: 0.5rem;
+  width: 8ch;
+  font: inherit;
+  color: #222;
+  border: none;
+  border-radius: 2px;
+  padding: 0 2px;
 }
 
 .display {
