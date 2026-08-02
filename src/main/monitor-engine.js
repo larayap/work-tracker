@@ -8,6 +8,12 @@
 // ADR-0001, la que evita reintroducir el bug de pausa original.
 'use strict'
 
+const path = require('path')
+const { app } = require('electron')
+const platform = require('./platform-windows.js')
+const sessionLog = require('./session-log.js')
+const jsonStore = require('./json-store.js')
+
 // ---------------------------------------------------------------------------
 // Identidad (D4): appId = ruta del ejecutable normalizada a minúsculas, o el
 // prefijo degradado 'name:<imagen>' cuando no hay ruta resoluble (procesos
@@ -148,9 +154,219 @@ function reduceFocus(sFocus, rows, now) {
   })
 }
 
+// ---------------------------------------------------------------------------
+// Estado en memoria y orquestación del tick (Tarea 13). Nada de esto es puro:
+// vive acá porque el main process es la fuente de verdad (D2/ADR-0002).
+// ---------------------------------------------------------------------------
+
+let selection = [] // selección guardada — persistida, ver Tarea 14
+let rows = [] // listado visible — solo en memoria (D5/ADR-0006)
+let tickHandle = null
+let inFlight = false
+let discoveryTickCounter = 0
+
+const listeners = []
+
+// onUpdate(callback) — se invoca tras cada tick y tras cada intención del
+// usuario que cambie el snapshot. ipc-handlers.js (Tarea 15) lo usa para
+// empujar `monitored-apps-state` sin que este módulo conozca IPC ni
+// `mainWindow`.
+function onUpdate(callback) {
+  listeners.push(callback)
+}
+
+function notify() {
+  listeners.forEach((callback) => callback())
+}
+
+// tick() — muestrea S_live y S_focus, aplica los dos reductores en orden fijo
+// (D1) y registra las sesiones cerradas antes de descartar sus filas.
+async function tick() {
+  if (inFlight) return
+  inFlight = true
+  try {
+    discoveryTickCounter += 1
+
+    // S_live, parte 1: liveness barata por PID de fila conocido, sin spawn.
+    const alivePids = new Set()
+    rows.forEach((row) => {
+      if (row.pid !== null && row.pid !== undefined && platform.isProcessAlive(row.pid)) {
+        alivePids.add(row.pid)
+      }
+    })
+
+    const discovered = {}
+
+    // S_focus: única fuente de foco. La muestra también aporta evidencia de
+    // vida (D1/D3) para el programa en foco, sin spawn adicional.
+    const focusSample = await platform.getForegroundWindow()
+    if (focusSample && focusSample.exePath) {
+      const focusedAppId = focusSample.exePath.toLowerCase()
+      const inSelection = selection.some((entry) => entry.appId === focusedAppId)
+      if (inSelection && focusSample.pid) {
+        discovered[focusedAppId] = focusSample.pid
+      }
+    }
+
+    // S_live, parte 2: descubrimiento condicionado (D3) — solo si hace falta
+    // (hay selección sin fila y el listado no está lleno) y solo cada 5 ticks.
+    const missingSelection = selection.some(
+      (entry) => !rows.some((row) => row.appId === entry.appId)
+    )
+    const needsDiscovery = missingSelection && rows.length < 4
+    if (needsDiscovery && discoveryTickCounter % 5 === 0) {
+      const processes = await platform.listRunningProcesses()
+      selection.forEach((entry) => {
+        if (discovered[entry.appId] !== undefined) return
+        const imageName = entry.exePath
+          ? path.basename(entry.exePath)
+          : entry.appId.replace(/^name:/, '')
+        const match = processes.find(
+          (proc) => proc.imageName.toLowerCase() === imageName.toLowerCase()
+        )
+        if (match) discovered[entry.appId] = match.pid
+      })
+    }
+
+    // 1. Ciclo de vida primero (D1): inserciones y bajas.
+    const lifecycleResult = reduceLifecycle({ alivePids, discovered }, selection, rows)
+    lifecycleResult.closed.forEach(({ row }) => sessionLog.appendSession(row, new Date()))
+
+    // 2. Foco después (D1): asigna estado a las filas que sobrevivieron.
+    rows = reduceFocus(focusSample, lifecycleResult.rows, Date.now())
+
+    notify()
+  } finally {
+    inFlight = false
+  }
+}
+
+// startEngine()/stopEngine() — un único timer de 1000ms (D1). Arranca solo si
+// la selección guardada no está vacía.
+function startEngine() {
+  if (tickHandle) return
+  tickHandle = setInterval(tick, 1000)
+}
+
+function stopEngine() {
+  if (tickHandle) {
+    clearInterval(tickHandle)
+    tickHandle = null
+  }
+}
+
+// closeRow(appId, motivo) — único camino de salida de fila por intención
+// externa (■ del usuario). El cierre por proceso muerto pasa por el mismo
+// `removeRow` puro dentro de `tick()`, vía `reduceLifecycle` (D1, sequence
+// diagram "Salida de fila" de design.md).
+function closeRow(appId, motivo) {
+  const { rows: nextRows, removed } = removeRow(rows, appId)
+  if (removed) {
+    console.log(`Fila cerrada: ${appId} (${motivo})`)
+    sessionLog.appendSession(removed, new Date())
+    rows = nextRows
+    notify()
+  }
+  return removed
+}
+
+// getSnapshot() — mensaje único de estado que viaja al renderer (D2).
+function getSnapshot() {
+  return {
+    rows: rows.map((row) => ({
+      appId: row.appId,
+      name: row.name,
+      exePath: row.exePath,
+      pid: row.pid,
+      state: row.state,
+      elapsedMs: row.elapsedMs,
+      sessionStartedAt: row.sessionStartedAt,
+    })),
+    selection: selection.map((entry) => ({
+      appId: entry.appId,
+      name: entry.name,
+      exePath: entry.exePath,
+    })),
+    limitReached: rows.length === 4,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Persistencia de la selección guardada (Tarea 14, D11/ADR-0006).
+// ---------------------------------------------------------------------------
+
+function getSelectionFilePath() {
+  return path.join(app.getPath('userData'), 'monitored-selection.json')
+}
+
+// loadSelection() — se invoca una vez al arrancar background.js (Tarea 16).
+// Arranca el motor si la selección persistida no está vacía.
+function loadSelection() {
+  selection = jsonStore.readJson(getSelectionFilePath(), [])
+  if (selection.length > 0) startEngine()
+}
+
+// addToSelection({ appId, name, exePath }) — agrega si no existe ya ese appId
+// y crea su fila de inmediato (D6/row-lifecycle: agregar muestra la fila sin
+// esperar evidencia de vida). La fila nace con `pid: null` y espera — no es
+// candidata a baja hasta que se observe una transición real de vivo a muerto
+// (D6). El límite de 4 sigue teniendo precedencia sobre el alta inmediata
+// (D7): con el listado lleno, el programa queda en la selección sin fila
+// hasta que se libere un lugar.
+function addToSelection({ appId, name, exePath }) {
+  const id = appId || normalizeAppId({ exePath, imageName: name })
+
+  if (!selection.some((entry) => entry.appId === id)) {
+    selection.push({ appId: id, name, exePath: exePath || null, addedAt: Date.now() })
+    jsonStore.writeJson(getSelectionFilePath(), selection)
+  }
+
+  const alreadyHasRow = rows.some((row) => row.appId === id)
+  if (!alreadyHasRow && rows.length < 4) {
+    const now = Date.now()
+    rows.push({
+      appId: id,
+      name,
+      exePath: exePath || null,
+      pid: null,
+      state: 'paused',
+      elapsedMs: 0,
+      sessionStartedAt: now,
+      lastTickAt: now,
+    })
+  }
+
+  if (!tickHandle) startEngine()
+  notify()
+}
+
+// removeFromSelection(appId) — quita de la selección y, si tenía fila propia,
+// la cierra con closeRow (motivo 'removed-from-selection') para no dejar una
+// sesión huérfana. Detiene el motor si la selección queda vacía.
+function removeFromSelection(appId) {
+  selection = selection.filter((entry) => entry.appId !== appId)
+  jsonStore.writeJson(getSelectionFilePath(), selection)
+
+  if (rows.some((row) => row.appId === appId)) {
+    closeRow(appId, 'removed-from-selection')
+  }
+
+  if (selection.length === 0) stopEngine()
+  notify()
+}
+
 module.exports = {
   normalizeAppId,
   reduceLifecycle,
   reduceFocus,
   removeRow,
+  tick,
+  startEngine,
+  stopEngine,
+  closeRow,
+  getSnapshot,
+  onUpdate,
+  loadSelection,
+  addToSelection,
+  removeFromSelection,
 }
