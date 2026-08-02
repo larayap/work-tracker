@@ -111,7 +111,29 @@ function showMainWindow() {
   mainWindow.focus()
 }
 
-app.whenReady().then(() => {
+// Único camino de arranque (fix C1, judgment-fixes-iteration-1). Antes había
+// dos listeners de 'ready' —este `whenReady().then()` y un `app.on('ready')`
+// más abajo, ambos duplicados ya en la base previa al cambio— que llamaban
+// createWindow() cada uno. La duplicación era inofensiva hasta que este
+// cambio movió registerIpcHandlers(mainWindow) adentro de createWindow():
+// ipcMain.handle() lanza al registrar un canal ya registrado, así que la
+// segunda invocación reasignaba `mainWindow` (línea de BrowserWindow más
+// abajo) y lanzaba antes de loadURL() y de mainWindow.on('close'), dejando la
+// ventana con la interfaz cargada huérfana y sin handler de cierre.
+// Se consolida en un único listener en vez de agregar un guard de
+// idempotencia en registerIpcHandlers: ese guard solo enmascararía el
+// síntoma (seguiría creándose una ventana de más en cada arranque), mientras
+// que la causa raíz es el doble createWindow().
+app.whenReady().then(async () => {
+  if (isDevelopment && !process.env.IS_TEST) {
+    // Install Vue Devtools
+    try {
+      await installExtension(VUEJS3_DEVTOOLS)
+    } catch (e) {
+      console.error('Vue Devtools failed to install:', e.toString())
+    }
+  }
+
   globalShortcut.register('CommandOrControl+Shift+I', () => {
     if (mainWindow) {
       mainWindow.webContents.openDevTools()
@@ -247,18 +269,6 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow()
 })
 
-
-app.on('ready', async () => {
-  if (isDevelopment && !process.env.IS_TEST) {
-    // Install Vue Devtools
-    try {
-      await installExtension(VUEJS3_DEVTOOLS)
-    } catch (e) {
-      console.error('Vue Devtools failed to install:', e.toString())
-    }
-  }
-  createWindow()
-})
 
 // Exit cleanly on request from parent process in development mode.
 if (isDevelopment) {
