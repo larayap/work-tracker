@@ -132,10 +132,10 @@ intervención del usuario
 
 ## Acceptance Criteria
 
-- [~] Con Discord y Clip Studio instalados, ambos aparecen en el listado de aplicaciones
-  instaladas. Verificado parcialmente: el entorno real solo tiene Discord instalado
-  ("Discord" aparece en el listado filtrado real); Clip Studio Paint no está instalado en
-  este equipo y no se pudo verificar.
+- [ ] Con Discord y Clip Studio instalados, ambos aparecen en el listado de aplicaciones
+  instaladas. Sin marcar: el entorno real solo tiene Discord instalado ("Discord" aparece en
+  el listado filtrado real, ver commit 0ac96e3); Clip Studio Paint no está instalado en este
+  equipo y no se pudo verificar.
 - [x] Una revisión completa del listado no encuentra ninguna entrada de categoría runtime,
   redistribuible, actualizador, servicio de fondo, ni ningún destino que no sea un
   ejecutable real.
