@@ -633,3 +633,40 @@ Limitación de entorno registrada: no se pudo contar empíricamente cuántas vec
 `before-quit` (el binario de `node_modules/electron` 13.6.9 no levanta acá por `libnss3.so`
 ausente). Esa parte del análisis es razonamiento sobre el diseño documentado de Electron, no
 ejecución.
+
+## 2026-08-05 | design-decision | work-groups-history-time-format | sdd-spec: delta del ítem 3 partido en dos specs sucesoras, capability `app-settings` nueva
+
+**Fase**: sdd-spec. Ocho specs nuevas creadas (una por ítem del ticket, salvo 5+6 que se
+mantuvieron separadas — ver justificación en el `Purpose` de cada una — y el ítem 3, que
+generó dos specs por la razón de abajo).
+
+**Delta obligatorio del ítem 3** (agrupación por nombre visible normalizado, en vez de
+`appId` degradado): el orquestador pidió aplicar la operación delta completa sobre las dos
+specs `completed` que el nuevo criterio contradice —
+[[usage-chart-by-interval]] (ahora superseded) y
+[[judgment-fixes-sessions-groups-history]] (ahora superseded), que documenta 4 correcciones
+de judgment (F1-F4) donde solo F1 queda afectada. Decisión tomada: **dos specs sucesoras**,
+no una sola que supersediera a ambas — [[usage-aggregation-by-visible-app-name]] (MODIFY de
+`usage-chart-by-interval`, restablece las 8 Requirements originales de selección de
+alcance/rotulado/scroll sin cambios y agrega el criterio de agrupación por nombre) y
+[[judgment-fixes-sessions-groups-history-revised]] (MODIFY de `judgment-fixes-...`,
+restablece F2/F3/F4 sin cambios y retira F1, con puntero hacia la spec anterior). Alternativa
+descartada: una única spec sucesora con `supersedes` como array apuntando a ambas — se
+descartó porque hubiera mezclado en un mismo documento el criterio de agrupación del gráfico
+con las correcciones de cierre de sesión/escritura atómica/nombre de instaladas, violando
+"una spec = un comportamiento atómico" con más fuerza que mantener dos sucesoras separadas.
+
+**Capability nueva `app-settings`** (spec [[configurable-time-format-preference]], ítem 6):
+ninguna de las 8 capabilities existentes cubre el panel de configuración (`OpcionesPanel.vue`
++ `settings.json`) fuera del volumen (`audio-volume`). Se creó la capability nueva en vez de
+forzar la preferencia de hora dentro de `history-window` (que solo describe lo que se
+muestra, no la preferencia en sí) o de `audio-volume` (tema no relacionado).
+
+**Ajustes de `affects` en specs preexistentes** (inverso declarativo de los `depends_on`
+nuevos, por regla del grafo de interconexión): `group-composition-and-drag` →
+`multiple-simultaneous-groups`; `inline-session-naming` → `readable-session-title-typography`;
+`session-view` → `session-time-without-seconds`.
+
+## 2026-08-05 | env-quirk | work-groups-history-time-format | El bundle del main process de `vue-cli-plugin-electron-builder` usa un webpack/acorn que no parsea `??` (nullish coalescing, ES2020) — falla con "Module parse failed: Unexpected token", mensaje típico de ausencia de loader, no de API en runtime. El renderer (misma versión de Vue CLI Service) compila `??` sin problema: son dos pipelines de webpack distintos dentro del mismo proyecto. Object spread (`{...a, ...b}`, ES2018) sí compila en el main sin problema — no es todo ES2020+ lo que rompe, específicamente `??`/`?.`. Regla práctica para código compartido main+renderer (`src/utils/*.js`): evitar `??` y `?.`, usar `== null` / `!= null` explícito.
+
+## 2026-08-05 | env-quirk | work-groups-history-time-format | La copia Windows preparada para verificación visual (`C:\Users\Luis Araya\dev\cronometro-app-win`) vive en el escritorio real y en uso activo del usuario, no en una sandbox dedicada. Al tomar una captura de pantalla completa para ubicar el ícono de bandeja, apareció una partida de League of Legends en selección de campeón en curso. `sdd-verify` suspendió toda interacción de mouse adicional de inmediato (ningún clic dirigido a la app) y solo hizo limpieza no interactiva (`taskkill` por PID). Ítems de Franja B/C de este cambio quedaron sin verificar por este motivo, además de por la build rota. Para una futura iteración: confirmar con el usuario una ventana de tiempo en la que la máquina esté libre antes de programar verificación visual automatizada, o preferir un entorno headless/dedicado si existe.

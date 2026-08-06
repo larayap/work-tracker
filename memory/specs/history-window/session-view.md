@@ -22,12 +22,12 @@ acceptance_criteria:
   - "Una sesión agrupada se muestra como un bloque con el grupo y sus filas hijas"
   - "Cambiar el día en el calendario actualiza la vista por sesión al nuevo día"
 related: ["[[usage-chart-by-interval]]", "[[dark-loading-state]]"]
-affects: []
+affects: ["[[session-time-without-seconds]]"]
 adrs: []
 scope: ["src/history/HistoryView.vue", "src/main/session-log.js"]
 verified_at: "2026-08-02"
 created: "2026-08-02"
-updated: "2026-08-02"
+updated: "2026-08-05"
 tags: [capability-spec]
 ---
 
@@ -115,3 +115,4 @@ ver `observations.md`.
 - [[usage-chart-by-interval]] — comparte el mismo historial estructurado, aunque agrega por
   aplicación en vez de por sesión
 - [[dark-loading-state]] — gobierna la apariencia de la ventana que contiene esta vista
+- [[session-time-without-seconds]] — reduce la precisión del horario que esta vista muestra

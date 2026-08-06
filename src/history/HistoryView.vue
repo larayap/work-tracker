@@ -43,7 +43,7 @@
     </div>
 
     <ByAppView v-if="activeView === 'byApp'" :entries="dayEntries" />
-    <BySessionView v-else :entries="dayEntries" />
+    <BySessionView v-else :entries="dayEntries" :time-format="timeFormat" />
   </div>
 </template>
 
@@ -106,6 +106,11 @@ export default {
       sessionDates: [],
       dayEntries: [],
       chartEntries: [],
+      // Preferencia de formato de hora (ADR-0012): esta ventana no monta
+      // Pinia (el store `settings` arrastra `@/plugins/sound`, que precarga
+      // cinco `Howl` innecesarios acá), así que se lee una sola vez por IPC
+      // en `created()` y se baja por prop a `BySessionView`.
+      timeFormat: '24h',
     }
   },
   computed: {
@@ -163,8 +168,13 @@ export default {
     this.loadSessionDates()
     this.loadDayEntries()
     this.loadChartEntries()
+    this.loadTimeFormat()
   },
   methods: {
+    async loadTimeFormat() {
+      const settings = await ipcRenderer.invoke('get-settings')
+      this.timeFormat = settings.timeFormat
+    },
     async loadSessionDates() {
       this.sessionDates = await ipcRenderer.invoke('get-session-dates')
     },

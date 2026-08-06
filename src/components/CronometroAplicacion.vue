@@ -20,18 +20,19 @@
       <div class="display">00:00:00</div>
     </div>
 
-    <!-- Filas sueltas (D-7/group-composition-and-drag): array local derivado
+    <!-- Filas sueltas (D-1/multiple-simultaneous-groups): array local derivado
          del snapshot por el `watch` de más abajo, suspendido mientras
-         `isDragging` está activo. `vuedraggable` muta este array de forma
-         optimista durante el gesto; el próximo snapshot lo reconstruye desde
-         el estado autoritativo del main. -->
+         `isDragging` está activo — el snapshot que llega durante el gesto se
+         guarda en `pendingRows`, nunca se descarta. `vuedraggable` muta este
+         array de forma optimista durante el gesto; al terminar, `applyRows`
+         lo reconstruye desde el estado autoritativo del main. -->
     <draggable
       v-model="dragUngrouped"
       class="drag-list"
       group="monitored-rows"
       item-key="appId"
-      @start="isDragging = true"
-      @end="isDragging = false"
+      @start="onDragStart"
+      @end="onDragEnd"
       @change="onUngroupedDragChange"
     >
       <template #item="{ element }">
@@ -43,37 +44,61 @@
       </template>
     </draggable>
 
-    <!-- Contenedor de grupo: franja delgada con ≥2 filas sueltas, cabecera
-         editable en cuanto recibe su primera fila (D-7). Un solo contenedor
-         activo a la vez — el modelo (`groupId` por fila) soporta N grupos,
-         el límite es de esta interfaz. -->
-    <div v-if="showGroupContainer" class="group-container">
-      <div v-if="dragGrouped.length === 0" class="group-strip">
-        Arrastrá aquí para agrupar
-      </div>
-      <div v-else class="group-header">
+    <!-- N contenedores de grupo (D-1): un `<draggable>` por grupo, en el
+         orden de primera aparición de cada `groupId` en `rows`. Cada
+         cabecera y cada handler de `@change` usa `group.groupId` — nunca una
+         variable de componente única — así que renombrar o agrupar sobre un
+         grupo no altera a los demás. -->
+    <div v-for="group in dragGroups" :key="group.groupId" class="group-container">
+      <div class="group-header">
         <input
-          v-if="editingGroupName"
+          v-if="editingGroupId === group.groupId"
           ref="groupNameInput"
           v-model="draftGroupName"
           class="group-name-input"
-          @keyup.enter="confirmGroupName"
+          @keyup.enter="confirmGroupName(group)"
           @keyup.esc="cancelGroupName"
           @blur="cancelGroupName"
           @click.stop
         />
-        <span v-else class="group-name" @click="startEditGroupName">
-          {{ activeGroupName || 'Grupo sin nombre' }}
+        <span v-else class="group-name" @click="startEditGroupName(group)">
+          {{ group.groupName || 'Grupo sin nombre' }}
         </span>
       </div>
       <draggable
-        v-model="dragGrouped"
+        v-model="group.rows"
         class="drag-list"
         group="monitored-rows"
         item-key="appId"
-        @start="isDragging = true"
-        @end="isDragging = false"
-        @change="onGroupDragChange"
+        @start="onDragStart"
+        @end="onDragEnd"
+        @change="onGroupDragChange($event, group.groupId)"
+      >
+        <template #item="{ element }">
+          <AppRow
+            :row="element"
+            :icon="monitoredApps.icons[element.exePath]"
+            @stop="monitoredApps.stopRow(element.appId)"
+          />
+        </template>
+      </draggable>
+    </div>
+
+    <!-- Franja permanente de creación (D-1): `dragNewGroup` SIEMPRE vacío —
+         un `<div>` a secas no es zona de drop de SortableJS, tiene que ser
+         una lista del mismo `group`. Sin `@start`/`@end` propios: nunca
+         origina un arrastre porque está vacía, esos eventos los emite la
+         lista de origen. Visible con al menos una fila suelta o durante
+         cualquier arrastre, para no desmontarse bajo el cursor si el gesto
+         vacía el listado suelto. -->
+    <div v-if="dragUngrouped.length >= 1 || isDragging" class="group-container">
+      <div class="group-strip">Arrastrá aquí para agrupar</div>
+      <draggable
+        v-model="dragNewGroup"
+        class="drag-list new-group-list"
+        group="monitored-rows"
+        item-key="appId"
+        @change="onNewGroupDragChange"
       >
         <template #item="{ element }">
           <AppRow
@@ -108,23 +133,19 @@ export default {
     return {
       monitoredApps: useMonitoredAppsStore(),
       showSelector: false, // Mostrar AppSelectorModal
-      // Grupos por arrastre (D-7): arrays locales derivados del snapshot,
-      // nunca la fuente de verdad — el main lo es (ADR-0002).
+      // Grupos por arrastre (D-1/multiple-simultaneous-groups): arrays
+      // locales derivados del snapshot, nunca la fuente de verdad — el main
+      // lo es (ADR-0002). `dragGroups` es una colección derivada de N
+      // grupos `{ groupId, groupName, rows }`, uno por `<draggable>`.
       dragUngrouped: [],
-      dragGrouped: [],
-      activeGroupId: null,
-      activeGroupName: null,
-      isDragging: false,
-      editingGroupName: false,
+      dragGroups: [],
+      dragNewGroup: [], // SIEMPRE vacío: modelo de la franja de creación
+      isDragging: false, // guarda ÚNICA a nivel de componente
+      pendingRows: null, // snapshot llegado durante un arrastre, a aplicar al terminar
+      pendingIntent: false, // este gesto ya emitió una intención por IPC
+      editingGroupId: null, // reemplaza al booleano editingGroupName
       draftGroupName: '',
     }
-  },
-  computed: {
-    // La franja aparece con ≥2 filas sueltas; la cabecera (con miembros) se
-    // sostiene sola aunque el listado suelto baje de 2.
-    showGroupContainer() {
-      return this.dragGrouped.length > 0 || this.dragUngrouped.length >= 2
-    },
   },
   created() {
     this.monitoredApps.init()
@@ -133,52 +154,114 @@ export default {
     'monitoredApps.rows'(rows) {
       rows.forEach((row) => this.monitoredApps.ensureIcon(row.exePath))
 
-      // Guarda `isDragging` (D-7): un snapshot llegando en medio de un
-      // arrastre no debe pisar los arrays locales que `vuedraggable` está
-      // mutando en ese instante — la reconstrucción pendiente se aplica
-      // recién cuando el gesto termina (`@end`).
-      if (this.isDragging) return
-
-      this.dragUngrouped = rows.filter((row) => !row.groupId)
-      const grouped = rows.filter((row) => row.groupId)
-      this.dragGrouped = grouped
-      this.activeGroupId = grouped.length > 0 ? grouped[0].groupId : null
-      this.activeGroupName = grouped.length > 0 ? grouped[0].groupName : null
+      // Guarda de arrastre (D-1): un snapshot llegando en medio de un gesto
+      // se guarda en `pendingRows`, nunca se descarta — con N contenedores
+      // la ventana de un snapshot perdido (≤1s) es más cara: puede mostrar
+      // una fila ya cerrada por el motor dentro de un grupo.
+      if (this.isDragging) {
+        this.pendingRows = rows
+        return
+      }
+      this.applyRows(rows)
     },
   },
   methods: {
     openHistoryWindow() {
       ipcRenderer.send('open-history-window')
     },
-    // onUngroupedDragChange/onGroupDragChange traducen el gesto a una
-    // intención (D-7): `evt.added` en la lista destino es lo único que
-    // importa — el `evt.removed` de la lista origen del mismo gesto no
-    // necesita acción propia, ya cubierto por el `added` de la otra lista.
+    // Reconstrucción atómica (D-1): recorre `rows` una sola vez, arma todo
+    // en locales y recién al final asigna — nunca una reconstrucción parcial
+    // "grupo por grupo", que dejaría al `v-for` mostrando una mezcla de dos
+    // snapshots distintos.
+    applyRows(rows) {
+      const nextUngrouped = []
+      const byId = new Map()
+      const nextGroups = []
+      rows.forEach((row) => {
+        if (!row.groupId) {
+          nextUngrouped.push(row)
+          return
+        }
+        let group = byId.get(row.groupId)
+        if (!group) {
+          group = { groupId: row.groupId, groupName: row.groupName, rows: [] }
+          byId.set(row.groupId, group)
+          nextGroups.push(group)
+        }
+        group.rows.push(row)
+      })
+      this.dragUngrouped = nextUngrouped
+      this.dragGroups = nextGroups
+    },
+    // Guarda de arrastre de tres reglas (D-1, mitigación de R2):
+    // 1) una sola bandera a nivel de componente, nunca una por lista —
+    //    SortableJS emite `start`/`end` en la instancia de origen del gesto
+    //    exactamente una vez cada uno.
+    onDragStart() {
+      this.isDragging = true
+    },
+    onDragEnd() {
+      this.isDragging = false
+      // 3) si el gesto ya emitió una intención (`@change` corre antes que
+      //    `@end`), el snapshot pendiente es anterior a esa intención:
+      //    aplicarlo devolvería la fila a su origen por un frame. Se
+      //    descarta — el snapshot correcto ya viene en camino.
+      if (this.pendingIntent) {
+        this.pendingIntent = false
+        return
+      }
+      // 2) si no hubo intención, se aplica el snapshot pendiente (llegó
+      //    durante el gesto), fuera del despacho de eventos de SortableJS.
+      if (!this.pendingRows) return
+      const rows = this.pendingRows
+      this.pendingRows = null
+      this.$nextTick(() => this.applyRows(rows))
+    },
+    // onUngroupedDragChange/onGroupDragChange/onNewGroupDragChange traducen
+    // el gesto a una intención (D-1): `evt.added` en la lista destino es lo
+    // único que importa — el `evt.removed` de la lista origen del mismo
+    // gesto no necesita acción propia, ya cubierto por el `added` de la
+    // otra lista. Marcan `pendingIntent` y limpian `pendingRows` ANTES de
+    // emitir la intención por IPC, porque `@change` corre antes que `@end`.
     onUngroupedDragChange(evt) {
       if (!evt.added) return
+      this.pendingIntent = true
+      this.pendingRows = null
       this.monitoredApps.setRowGroup(evt.added.element.appId, null)
     },
-    onGroupDragChange(evt) {
+    onGroupDragChange(evt, groupId) {
       if (!evt.added) return
-      const groupId = this.activeGroupId || this.generateGroupId()
+      this.pendingIntent = true
+      this.pendingRows = null
       this.monitoredApps.setRowGroup(evt.added.element.appId, groupId)
+    },
+    onNewGroupDragChange(evt) {
+      if (!evt.added) return
+      this.pendingIntent = true
+      this.pendingRows = null
+      this.monitoredApps.setRowGroup(evt.added.element.appId, this.generateGroupId())
+      this.dragNewGroup = []
     },
     generateGroupId() {
       return `group-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     },
-    startEditGroupName() {
-      this.draftGroupName = this.activeGroupName || ''
-      this.editingGroupName = true
-      this.$nextTick(() => this.$refs.groupNameInput && this.$refs.groupNameInput.focus())
+    startEditGroupName(group) {
+      this.draftGroupName = group.groupName || ''
+      this.editingGroupId = group.groupId
+      // Trampa de Vue 3: un `ref` declarado dentro de un `v-for` se registra
+      // como array, aunque un `v-if` deje un solo elemento renderizado.
+      this.$nextTick(() => {
+        const el = this.$refs.groupNameInput
+        const input = Array.isArray(el) ? el[0] : el
+        if (input) input.focus()
+      })
     },
-    confirmGroupName() {
-      if (this.activeGroupId) {
-        this.monitoredApps.renameGroup(this.activeGroupId, this.draftGroupName)
-      }
-      this.editingGroupName = false
+    confirmGroupName(group) {
+      this.monitoredApps.renameGroup(group.groupId, this.draftGroupName)
+      this.editingGroupId = null
     },
     cancelGroupName() {
-      this.editingGroupName = false
+      this.editingGroupId = null
     },
   },
 }
@@ -259,6 +342,13 @@ export default {
 
 .drag-list {
   width: 100%;
+}
+
+/* La franja de creación siempre modela una lista vacía (`dragNewGroup`):
+   sin alto propio, SortableJS no tendría área sobre la que aceptar el
+   `drop` de la primera fila. */
+.new-group-list {
+  min-height: 40px;
 }
 
 .group-container {
