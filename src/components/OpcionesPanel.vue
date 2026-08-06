@@ -27,6 +27,17 @@
           @input="settingsStore.setInteraction(Number($event.target.value))"
         />
       </div>
+      <div class="setting-control">
+        <label for="time-format">Formato de hora</label>
+        <select
+          id="time-format"
+          :value="settingsStore.timeFormat"
+          @change="settingsStore.setTimeFormat($event.target.value)"
+        >
+          <option value="24h">24 horas</option>
+          <option value="12h">12 horas</option>
+        </select>
+      </div>
       <button class="close-btn" @click="$emit('close')">Cerrar</button>
     </div>
   </div>
@@ -73,16 +84,19 @@ export default {
   margin-top: 0;
   text-align: center;
 }
-.volume-control {
+.volume-control,
+.setting-control {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
   margin-bottom: 1rem;
 }
-.volume-control label {
+.volume-control label,
+.setting-control label {
   font-size: 0.9rem;
 }
-.volume-control input[type='range'] {
+.volume-control input[type='range'],
+.setting-control input[type='range'] {
   width: 100%;
 }
 .close-btn {
