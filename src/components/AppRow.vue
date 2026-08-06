@@ -165,12 +165,14 @@ export default {
   text-overflow: ellipsis;
   color: #f0f0f0;
   cursor: text;
+  font-family: sans-serif;
 }
 
 .app-name-input {
   margin-left: 0.5rem;
   width: 8ch;
   font: inherit;
+  font-family: sans-serif;
   color: #222;
   border: none;
   border-radius: 2px;
