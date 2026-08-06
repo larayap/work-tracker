@@ -29,16 +29,18 @@
 
 <script>
 import { buildDayTimeline } from '@/utils/session-aggregate.js'
-import { msToHHMMSS, formatTimeHHMMSS } from '@/utils/time-format.js'
+import { msToHHMMSS, formatTimeHHMM } from '@/utils/time-format.js'
 
 // Componente de presentación pura (D-10): recibe las entradas del día ya
 // filtradas por prop, sin IPC propio. Usa `buildDayTimeline` para el orden
 // cronológico y el colapso de grupos en un único bloque (D-3: el total del
-// grupo es la suma de sus miembros, nunca reloj de pared).
+// grupo es la suma de sus miembros, nunca reloj de pared). `timeFormat`
+// llega por prop (ADR-0012): esta ventana no monta Pinia.
 export default {
   name: 'BySessionView',
   props: {
     entries: { type: Array, required: true },
+    timeFormat: { type: String, default: '24h' },
   },
   computed: {
     blocks() {
@@ -50,7 +52,7 @@ export default {
       return msToHHMMSS(ms)
     },
     formatRange(entry) {
-      return `${formatTimeHHMMSS(new Date(entry.startedAt))}–${formatTimeHHMMSS(new Date(entry.endedAt))}`
+      return `${formatTimeHHMM(new Date(entry.startedAt), this.timeFormat)}–${formatTimeHHMM(new Date(entry.endedAt), this.timeFormat)}`
     },
   },
 }
