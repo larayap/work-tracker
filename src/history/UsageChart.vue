@@ -53,7 +53,7 @@ export default {
           {
             label: 'Tiempo',
             data: this.aggregated.map((row) => row.durationMs),
-            backgroundColor: '#6f6f6f',
+            backgroundColor: '#d9d9d9',
           },
         ],
       }
@@ -64,10 +64,12 @@ export default {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-          x: {
-            grid: { display: false },
-            ticks: { callback: (value) => msToHHMMSS(value) },
-          },
+          // `display: false` oculta la escala entera (línea, grilla y
+          // ticks) — es la opción canónica de chart.js 4 para eso
+          // (tech-context.md). `grid`/`ticks.callback` quedaban sin efecto
+          // y se retiran para no dejar configuración muerta. El valor
+          // exacto sigue disponible en el tooltip (`plugins.tooltip` abajo).
+          x: { display: false },
           y: {
             grid: { display: false },
           },
