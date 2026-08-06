@@ -132,9 +132,11 @@ repetidos; control positivo (clave nueva) → 11 filas sin duplicados, suma de `
 preservada exacta, y `Chrome`/`Google Chrome` conviven como filas separadas. `UsageChart.vue`
 y `ByAppView.vue` mapean 1:1 sobre las filas de `aggregateByApp` (`row.app`, `row.key`,
 `row.durationMs`), así que el render hereda la corrección; el renderizado en sí (barra/fila
-visible en pantalla) no se ejecutó (Franja B). El resto de los criterios (alcance
-día/mes/rango, desplazamiento) no forma parte del `scope` tocado por este cambio y queda sin
-marcar.
+visible en pantalla) no se ejecutó en iteración 1 (Franja B); completado en iteración 2:
+historial real sobre "2 ago 2026" muestra 5 barras/filas sin duplicados ("League of Legends",
+"Google Chrome", "Brave", "Firefox", "Access"), coincidiendo con los datos reales de
+`sessions.json`. El resto de los criterios (alcance día/mes/rango, desplazamiento) no forma
+parte del `scope` tocado por este cambio y queda sin marcar.
 
 - [ ] El gráfico muestra por defecto el tiempo por aplicación del día seleccionado,
   coincidiendo con la lista "Por app".

@@ -81,14 +81,28 @@ decorativa actual, por decisión explícita del usuario.
 Implementación completa (commit `6cad42c`, `AppRow.vue`): `font-family: sans-serif` en
 `.app-name` y `.app-name-input` (en esta última, después de `font: inherit`, cuyo shorthand
 resetea `font-family`). Revisión de diff confirma que `App.vue` y `CronometroPomodoro.vue`
-no fueron tocados. Verificación visual (Franja B) pendiente de `sdd-verify`.
+no fueron tocados. Verificación visual (Franja B) completada por `sdd-verify` (iteración 2,
+app real en Windows): con dos filas activas (`Discord` sin título propio, y renombrada a
+`Voice call`), ambos textos se ven en sans-serif claramente distinto de la tipografía
+decorativa del título "Work" y de los dígitos del cronómetro `00:00:00`, capturado en la
+misma pantalla. El campo de edición se abrió (click sobre el nombre) y usa la misma regla
+CSS (`font-family: sans-serif` explícito, no heredado) — confirmado por código, la captura
+del campo abierto no llegó a mostrar texto tipeado antes del `Enter`. El widget Pomodoro en
+sí no se abrió en esta sesión (solo se abrió "W"); su código no forma parte del diff de este
+cambio (confirmado en iteración 1), así que no hay razón para esperar que su tipografía haya
+cambiado.
 
-- [ ] El nombre de la aplicación, cuando la sesión no tiene título propio, se muestra en
-  tipografía legible del sistema.
-- [ ] El título de una sesión con nombre propio se muestra en la misma tipografía legible.
-- [ ] El campo de edición del título usa la misma tipografía legible mientras se edita.
-- [ ] El título de la ventana y el temporizador Pomodoro conservan la tipografía decorativa,
-  sin cambios.
+- [x] El nombre de la aplicación, cuando la sesión no tiene título propio, se muestra en
+  tipografía legible del sistema. (visual: fila "Discord" antes de renombrar, sans-serif)
+- [x] El título de una sesión con nombre propio se muestra en la misma tipografía legible.
+  (visual: fila renombrada a "Voice call", sans-serif)
+- [x] El campo de edición del título usa la misma tipografía legible mientras se edita.
+  (campo de edición abierto y usado para escribir el nombre nuevo; regla CSS aplicable
+  confirmada por código — `font-family: sans-serif` tras `font: inherit`)
+- [x] El título de la ventana y el temporizador Pomodoro conservan la tipografía decorativa,
+  sin cambios. (visual: título "Work" y dígitos `00:00:00` en la misma fuente decorativa de
+  siempre, en la misma captura donde los nombres de fila ya se ven en sans-serif; el widget
+  Pomodoro no se abrió, pero su archivo no aparece en el diff)
 
 ## Related
 

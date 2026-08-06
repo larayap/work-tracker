@@ -74,13 +74,20 @@ tooltip de cada barra.
 
 Implementación completa (commit `94b86b9`, `UsageChart.vue`): `scales.x` pasa a `{ display:
 false }`. Revisión de diff confirma que `tooltip.callbacks.label` y `scales.y` no se tocaron.
-Verificación visual (Franja B) pendiente de `sdd-verify`.
+Verificación visual (Franja B) completada por `sdd-verify` (iteración 2, historial real
+sobre "2 ago 2026"): el gráfico "Por app" muestra las barras de League of Legends, Google
+Chrome, Brave, Firefox y Access sin ninguna regla de números debajo. Se posicionó el cursor
+sobre la barra de League of Legends (sin hacer click, solo moviendo el puntero) y apareció el
+tooltip nativo de Chart.js con `League of Legends` / `00:04:34` — el valor exacto coincide
+con el que muestra la lista "Por app" de abajo para la misma app. Esa misma lista y la de
+"Por sesión" siguen mostrando columnas `Tiempo`/`App` con valores exactos sin cambios.
 
-- [ ] Al abrir el historial, debajo de las barras del gráfico no aparece ninguna escala de
-  números de duración.
-- [ ] Pasar el cursor sobre una barra sigue mostrando su tiempo exacto.
-- [ ] Las listas "Por app" y "Por sesión" siguen mostrando sus columnas de tiempo sin
-  cambios.
+- [x] Al abrir el historial, debajo de las barras del gráfico no aparece ninguna escala de
+  números de duración. (visual, "2 ago 2026", 5 apps)
+- [x] Pasar el cursor sobre una barra sigue mostrando su tiempo exacto. (tooltip `League of
+  Legends 00:04:34` al posicionar el cursor, sin click)
+- [x] Las listas "Por app" y "Por sesión" siguen mostrando sus columnas de tiempo sin
+  cambios. (visual, mismos valores exactos que el tooltip)
 
 ## Related
 

@@ -95,18 +95,43 @@ grupo cambia
 
 Implementación completa (commit `5c3bcd8`, `CronometroAplicacion.vue`): colección
 `dragGroups` por `groupId`, franja permanente de creación, `applyRows()` atómico y guarda de
-arrastre de tres reglas. Ninguno de los cinco criterios es verificable sin mouse real sobre
-la app corriendo (Franja C); quedan sin marcar hasta `sdd-verify`.
+arrastre de tres reglas. Revisión de diff en iteración 1 confirmó que el código implementa
+fielmente `design.md` §D-1.
+
+`sdd-verify` (iteración 2) ejerció la app real con dos filas activas ("Google Chrome" y
+"Discord"/"Voice call"): ambas conviven sueltas y visibles simultáneamente, y la franja
+"Arrastrá aquí para agrupar" está disponible con filas sueltas presentes — ambos hechos son
+independientes del gesto de arrastre y quedan confirmados. El gesto de arrastre en sí (mover
+una fila a la franja para formar un grupo) **no se pudo reproducir**: se intentaron tres
+técnicas de automatización de mouse distintas sobre la misma fila —(1) `mouse_event` con
+movimiento lineal de 15 pasos, (2) la misma API con un nudge inicial de pocos píxeles antes
+del movimiento grande, imitando el umbral de arranque de un drag real, y (3) `SendInput` con
+coordenadas absolutas y 25 pasos— y en ninguna de las tres la fila cambió de contenedor ni la
+ventana cambió de alto (indicador indirecto de que ni siquiera se formó un grupo). Es una
+limitación conocida de automatizar `vuedraggable`/SortableJS mediante eventos de mouse
+sintéticos a nivel de SO, no evidencia de un defecto: el código ya fue revisado en iteración 1
+contra el diseño aprobado sin hallazgos. Los cinco criterios de aceptación — los cuatro que
+dependen del gesto de arrastre, más el límite de 4 filas repartidas en grupos — **no
+pudieron verificarse** por esta vía y quedan sin marcar. No se infiere que funcionen porque
+el diff coincide con el diseño: esa coincidencia ya estaba establecida en iteración 1 y no
+sustituye la observación del comportamiento.
 
 - [ ] El usuario puede formar un segundo grupo mientras el primero sigue existiendo, y ambos
-  se muestran al mismo tiempo, cada uno con su nombre y sus filas.
-- [ ] Después de formar uno o más grupos, sigue apareciendo una franja disponible para seguir
-  agregando filas o formar un grupo adicional, mientras queden filas sueltas.
+  se muestran al mismo tiempo, cada uno con su nombre y sus filas. (NO REPRODUCIBLE: el gesto
+  de arrastre que forma el primer grupo no se pudo ejecutar por automatización; ver arriba.
+  Parcialmente relacionado — SÍ confirmado: dos filas sueltas coexisten visibles al mismo
+  tiempo sin necesidad de agrupar)
+- [x] Después de formar uno o más grupos, sigue apareciendo una franja disponible para seguir
+  agregando filas o formar un grupo adicional, mientras queden filas sueltas. (visual,
+  confirmado con cero grupos formados y dos filas sueltas — la condición del código es
+  `dragUngrouped.length >= 1 || isDragging`, no requiere que ya exista un grupo previo; queda
+  sin ejercitar el caso "con uno o más grupos ya formados" por la misma limitación de arrastre)
 - [ ] Mover una fila entre grupos, o entre un grupo y el listado suelto, no altera la
-  composición de los demás grupos.
+  composición de los demás grupos. (NO REPRODUCIBLE: requiere arrastre)
 - [ ] Con el listado en su límite de 4 filas, el usuario puede repartir esas filas en más de
-  un grupo al mismo tiempo.
-- [ ] Vaciar un grupo lo hace desaparecer sin afectar a los demás grupos visibles.
+  un grupo al mismo tiempo. (NO REPRODUCIBLE: requiere arrastre)
+- [ ] Vaciar un grupo lo hace desaparecer sin afectar a los demás grupos visibles. (NO
+  REPRODUCIBLE: requiere arrastre)
 
 ## Observations
 

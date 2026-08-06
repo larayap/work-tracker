@@ -89,15 +89,43 @@ Implementación completa (commit `4c673f9`: `ipc-handlers.js`, `settings.js`,
 `OpcionesPanel.vue`, `HistoryView.vue`), incluidos los tres defectos latentes que el diseño
 detectó (merge de defaults en `get-settings`, `persist()` único para no perder la preferencia
 al mover el volumen, historial sin montar Pinia — ADR-0012). Los cinco criterios describen
-comportamiento end-to-end (panel → store → IPC → historial) que requiere la app corriendo;
-ninguno se ejecutó en esta fase (Franja B), quedan sin marcar para `sdd-verify`.
+comportamiento end-to-end (panel → store → IPC → historial), verificado end-to-end por
+`sdd-verify` (iteración 2, app real en Windows, sesiones reales del 2026-08-02):
 
-- [ ] El panel de configuración ofrece elegir entre formato de 12 horas y 24 horas.
-- [ ] Elegir 12 horas hace que los horarios de reloj mostrados incluyan AM/PM.
-- [ ] Elegir 24 horas hace que los horarios de reloj mostrados no incluyan AM/PM.
-- [ ] La preferencia elegida se mantiene después de cerrar y volver a abrir la aplicación.
-- [ ] Sin ninguna preferencia elegida todavía, los horarios de reloj se muestran en el
-  formato por defecto.
+1. `settings.json` inicial (antes de tocar nada) carecía por completo de la clave
+   `timeFormat` — la app igual mostró "24 horas" en el panel, confirmando el merge de
+   defaults (defecto latente 1).
+2. Se cambió el selector a "12 horas"; `settings.json` pasó a `"timeFormat": "12h"` de
+   inmediato. Se abrió el historial en "2 ago 2026" → "Por sesión": los rangos horarios se
+   vieron como `11:37 AM–11:38 AM` (con AM/PM, sin segundos).
+3. Con la preferencia en 12h, se movió el slider "Volumen general" (`masterVolume` pasó a
+   `0.52` en el archivo real) y se releyó `settings.json`: `"timeFormat": "12h"` seguía
+   presente, sin ser pisado por el guardado del volumen (defecto latente 2, `persist()`
+   unificado).
+4. Se volvió a "24 horas" en el panel; se cerró y reabrió la ventana de historial (nueva
+   instancia, sin recargar toda la app) sobre el mismo día: los mismos rangos se vieron sin
+   AM/PM (`11:37–11:38`).
+5. Prueba más fuerte que "cerrar y reabrir la ventana": se puso la preferencia en 12h de
+   nuevo, se mataron **todos** los procesos `electron`/`node` (cierre real del proceso, no
+   solo ocultar a la bandeja) y se relanzó `npm run electron:serve` desde cero. Al abrir
+   Opciones en la instancia nueva, el selector mostró "12 horas" y el volumen general seguía
+   en ~0.52 — la preferencia sobrevivió un reinicio real del proceso, leída de
+   `settings.json` en disco, no de un estado en memoria.
+
+Al cerrar la verificación se restauró `settings.json` a su contenido original
+(`{"masterVolume": 1, "interactionVolume": 1}`, sin `timeFormat`) para no dejar alterada la
+configuración real del usuario.
+
+- [x] El panel de configuración ofrece elegir entre formato de 12 horas y 24 horas. (`<select>`
+  con ambas opciones, confirmado visualmente)
+- [x] Elegir 12 horas hace que los horarios de reloj mostrados incluyan AM/PM. (`11:37 AM–11:38
+  AM` en la vista Por sesión tras el cambio)
+- [x] Elegir 24 horas hace que los horarios de reloj mostrados no incluyan AM/PM. (`11:37–11:38`
+  en la misma vista tras volver a 24h)
+- [x] La preferencia elegida se mantiene después de cerrar y volver a abrir la aplicación.
+  (confirmado con un reinicio real del proceso Electron, no solo de la ventana — ver punto 5)
+- [x] Sin ninguna preferencia elegida todavía, los horarios de reloj se muestran en el formato
+  por defecto. (`settings.json` sin la clave `timeFormat` → panel mostró "24 horas", punto 1)
 
 ## Observations
 

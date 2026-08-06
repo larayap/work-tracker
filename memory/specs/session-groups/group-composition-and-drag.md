@@ -23,12 +23,12 @@ acceptance_criteria:
   - "Sacar una fila de un grupo la devuelve al listado suelto"
   - "Un grupo sin filas deja de existir como tal"
 related: ["[[simultaneous-limit]]", "[[inline-session-naming]]"]
-affects: ["[[session-view]]"]
+affects: ["[[session-view]]", "[[multiple-simultaneous-groups]]"]
 adrs: []
 scope: ["src/components/CronometroAplicacion.vue", "src/components/AppRow.vue", "src/stores/monitoredApps.js", "src/main/session-log.js"]
 verified_at: "2026-08-02"
 created: "2026-08-02"
-updated: "2026-08-02"
+updated: "2026-08-05"
 tags: [capability-spec]
 ---
 
@@ -150,3 +150,5 @@ sí requiere mouse real sobre un DOM renderizado y no es verificable en este ent
 - [[simultaneous-limit]] — el límite de filas simultáneas sigue vigente sin cambios para
   las filas agrupadas
 - [[session-view]] — muestra los grupos como bloque en la vista por sesión del historial
+- [[multiple-simultaneous-groups]] — extiende este mecanismo de uno a varios grupos
+  simultáneos

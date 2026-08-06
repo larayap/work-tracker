@@ -6,7 +6,7 @@ slug: "judgment-fixes-sessions-groups-history"
 domain: "feature"
 delta_type: added
 supersedes: null
-superseded_by: null
+superseded_by: "[[judgment-fixes-sessions-groups-history-revised]]"
 status: completed
 assigned_agent: "sdd-apply"
 priority: critical
@@ -27,7 +27,7 @@ adrs: ["[[0007-structured-sessions-json-with-one-shot-migration]]", "[[0009-type
 scope: ["src/utils/session-aggregate.js", "src/main/monitor-engine.js", "src/main/session-log.js", "src/main/installed-apps-filter.js"]
 verified_at: null
 created: "2026-08-02"
-updated: "2026-08-02"
+updated: "2026-08-05"
 tags: [capability-spec, judgment-fix]
 ---
 
@@ -153,3 +153,9 @@ Detalle técnico de cada defecto, con la evidencia que lo sustenta, en
 - [[usage-chart-by-interval]] — el gráfico cuyo Requirement de completitud rompe F1
 - [[session-view]] — la vista por sesión NO está afectada por F1 (agrega por entrada, no por `appId`)
 - [[installed-apps-data-integrity]] — el listado cuyo Requirement de nombre legible rompe F4
+
+> **Superseded (2026-08-05)** por [[judgment-fixes-sessions-groups-history-revised]]: F2, F3
+> y F4 siguen vigentes sin cambios. F1 queda retirado de esta spec — el criterio correcto de
+> agrupación por aplicación pasa a estar definido en
+> [[usage-aggregation-by-visible-app-name]] (agrupación por nombre visible normalizado, no
+> por `appId` degradado).

@@ -23,12 +23,12 @@ acceptance_criteria:
   - "El nombre queda congelado en el historial en el valor que tenía al cerrarse la sesión"
   - "Una sesión sin nombre se comporta exactamente igual que hoy"
 related: ["[[group-composition-and-drag]]"]
-affects: ["[[group-composition-and-drag]]", "[[session-view]]"]
+affects: ["[[group-composition-and-drag]]", "[[session-view]]", "[[readable-session-title-typography]]"]
 adrs: []
 scope: ["src/components/AppRow.vue", "src/stores/monitoredApps.js", "src/main/session-log.js"]
 verified_at: "2026-08-02"
 created: "2026-08-02"
-updated: "2026-08-02"
+updated: "2026-08-05"
 tags: [capability-spec]
 ---
 
@@ -129,3 +129,5 @@ cerrar, que son el comportamiento que esa interacción termina invocando.
 - [[sessions-json-persistence]] — persiste el nombre que esta spec define en cada entrada
   del historial
 - [[session-view]] — muestra el nombre de la sesión en la vista por sesión del historial
+- [[readable-session-title-typography]] — cambia la tipografía del texto que este mecanismo
+  produce, sin afectar su comportamiento

@@ -4,8 +4,8 @@ change_name: "work-groups-history-time-format"
 domain: "feature"
 status: active
 fast_path: "full"
-current_phase: sdd-verify
-phases_completed: [sdd-init, sdd-explore, sdd-propose, sdd-spec, sdd-design, sdd-tasks, sdd-apply]
+current_phase: sdd-archive
+phases_completed: [sdd-init, sdd-explore, sdd-propose, sdd-spec, sdd-design, sdd-tasks, sdd-apply, sdd-verify]
 spec_refs: ["[[multiple-simultaneous-groups]]", "[[hide-usage-chart-duration-scale]]", "[[usage-aggregation-by-visible-app-name]]", "[[judgment-fixes-sessions-groups-history-revised]]", "[[readable-session-title-typography]]", "[[session-time-without-seconds]]", "[[configurable-time-format-preference]]", "[[bright-chart-bars-on-dark-background]]"]
 jira_key: "POM-1"
 post_init_fields_done: true
@@ -19,7 +19,7 @@ mr: ""
 mr_status: pending
 mr_error: ""
 created: "2026-08-05"
-updated: "2026-08-05"
+updated: "2026-08-06"
 tags: [change]
 ---
 

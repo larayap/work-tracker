@@ -65,13 +65,22 @@ barras a un gris claro bien contrastado, sin tocar el fondo oscuro de la ventana
 Implementación completa (commit `94b86b9`, `UsageChart.vue`): `backgroundColor` pasa de
 `'#6f6f6f'` a `'#d9d9d9'` (~12:1 de contraste contra `#1b1b1b`, calculado en `design.md`, no
 medido con herramienta). Revisión de diff confirma que `ChartJS.defaults` y el fondo de la
-ventana no se tocaron. Verificación visual (Franja B) pendiente de `sdd-verify`.
+ventana no se tocaron. Verificación visual (Franja B) completada por `sdd-verify` (iteración
+2): capturado el historial real en "2 ago 2026", las cinco barras ("League of Legends",
+"Google Chrome", "Brave", "Firefox", "Access") se ven en gris claro, con contraste evidente
+contra el fondo casi negro de la ventana. El fondo se mantuvo oscuro en todas las capturas de
+esta sesión (calendario, gráfico y listas), incluida la primera captura tras revelar la
+ventana desde la bandeja — sin destello claro observado (single-frame, no descarta un
+parpadeo por debajo del intervalo de captura). Las etiquetas de cada app y sus valores en las
+listas de abajo se leen con claridad sobre el nuevo color. Contraste no remedido con
+herramienta dedicada (sigue como estimación de `design.md`).
 
-- [ ] Las barras del gráfico se muestran en un tono claro, bien contrastado sobre el fondo
-  oscuro.
-- [ ] El fondo de la ventana de historial y el resto de su paleta no cambian.
-- [ ] Las etiquetas y números del gráfico se leen con claridad sobre el nuevo color de las
-  barras.
+- [x] Las barras del gráfico se muestran en un tono claro, bien contrastado sobre el fondo
+  oscuro. (visual, "2 ago 2026")
+- [x] El fondo de la ventana de historial y el resto de su paleta no cambian. (fondo oscuro en
+  todas las capturas de la sesión)
+- [x] Las etiquetas y números del gráfico se leen con claridad sobre el nuevo color de las
+  barras. (visual)
 
 ## Related
 

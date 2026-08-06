@@ -6,7 +6,7 @@ slug: "usage-chart-by-interval"
 domain: "feature"
 delta_type: added
 supersedes: null
-superseded_by: null
+superseded_by: "[[usage-aggregation-by-visible-app-name]]"
 status: completed
 assigned_agent: "sdd-apply"
 priority: medium
@@ -28,7 +28,7 @@ adrs: []
 scope: ["src/history/HistoryView.vue", "src/main/session-log.js", "package.json"]
 verified_at: "2026-08-02"
 created: "2026-08-02"
-updated: "2026-08-02"
+updated: "2026-08-05"
 tags: [capability-spec]
 ---
 
@@ -144,3 +144,9 @@ lógica pura con `node -e`; la observación visual con la app real (renderizado 
 - [[sessions-json-persistence]] — fuente de datos que este gráfico agrega por intervalo
 - [[session-view]] — comparte el mismo historial estructurado, aunque muestra sesiones
   individuales en vez de totales por aplicación
+
+> **Superseded (2026-08-05)** por [[usage-aggregation-by-visible-app-name]]: el criterio de
+> agrupación por `appId` degradado a nombre (documentado arriba como fix F1) queda
+> reemplazado por agrupación directa por nombre visible normalizado, sin usar el
+> identificador interno del ejecutable. El resto de esta spec (selección de alcance
+> día/mes/rango, rotulado, scroll) sigue describiendo el comportamiento vigente.

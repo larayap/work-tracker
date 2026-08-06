@@ -66,8 +66,9 @@ Implementación completa (commit `29fa6b3`, `time-format.js` + `BySessionView.vu
 - [x] El horario de inicio y cierre de cada sesión en la vista por sesión se muestra solo
   con hora y minuto, sin segundos. (`formatTimeHHMM` verificado con `node -e` contra los 8
   casos de la tabla de diseño, incluida la rama 24h por defecto; `BySessionView.vue::formatRange`
-  actualizado para usarla en las dos llamadas — revisión de diff. El renderizado real en la
-  ventana de historial, Franja B, no se ejecutó)
+  actualizado para usarla en las dos llamadas — revisión de diff. Verificación visual
+  completada por `sdd-verify` iteración 2: historial real sobre "2 ago 2026" → "Por sesión"
+  muestra rangos como `11:37–11:38`, sin segundos, tanto en 24h como en 12h)
 - [x] La duración y el nombre de la sesión no cambian su forma de mostrarse. (revisión de
   diff: `formatDuration`/`msToHHMMSS` y el rótulo `entry.sessionName || entry.app` no fueron
   tocados por este cambio)
