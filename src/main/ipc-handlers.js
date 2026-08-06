@@ -15,7 +15,7 @@ function getSettingsFilePath() {
   return path.join(app.getPath('userData'), 'settings.json')
 }
 
-const defaultSettings = { masterVolume: 1, interactionVolume: 1 }
+const defaultSettings = { masterVolume: 1, interactionVolume: 1, timeFormat: '24h' }
 
 function registerIpcHandlers(mainWindow) {
   ipcMain.handle('get-monitored-snapshot', () => monitorEngine.getSnapshot())
@@ -56,7 +56,14 @@ function registerIpcHandlers(mainWindow) {
   ipcMain.handle('get-sessions', (event, { from, to }) => sessionLog.readSessions({ from, to }))
   ipcMain.handle('get-session-dates', () => sessionLog.listSessionDates())
 
-  ipcMain.handle('get-settings', () => jsonStore.readJson(getSettingsFilePath(), defaultSettings))
+  // `readJson(path, fallback)` devuelve `fallback` solo si el archivo falta
+  // o está corrupto: un `settings.json` ya existente pero sin `timeFormat`
+  // (agregado en esta preferencia) llegaría con esa clave `undefined` sin el
+  // merge explícito con `defaultSettings`.
+  ipcMain.handle('get-settings', () => ({
+    ...defaultSettings,
+    ...jsonStore.readJson(getSettingsFilePath(), {}),
+  }))
 
   ipcMain.on('save-settings', (event, settings) => {
     jsonStore.writeJson(getSettingsFilePath(), settings)
