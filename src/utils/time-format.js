@@ -18,11 +18,22 @@ function msToHHMMSS(ms) {
     .join(':')
 }
 
-function formatTimeHHMMSS(dateObj) {
-  const hh = String(dateObj.getHours()).padStart(2, '0')
+// formatTimeHHMM(dateObj, format) → String — hora local sin segundos.
+// `format` entra como parámetro explícito, nunca leído de estado global: es
+// lo que hace verificable esta función con `node -e` sin acoplarla a la UI
+// ni al store de preferencias. `'12h'` da `H:MM AM|PM` sin cero a la
+// izquierda; cualquier otro valor (incluido `undefined`) da `HH:MM` de 24
+// horas con cero a la izquierda — la rama 24h es el comportamiento total de
+// la función, no una segunda fuente de verdad del default de producto (ese
+// vive solo en `defaultSettings.timeFormat`, en el main).
+function formatTimeHHMM(dateObj, format) {
+  const h24 = dateObj.getHours()
   const mm = String(dateObj.getMinutes()).padStart(2, '0')
-  const ss = String(dateObj.getSeconds()).padStart(2, '0')
-  return `${hh}:${mm}:${ss}`
+  if (format === '12h') {
+    const h12 = h24 % 12 === 0 ? 12 : h24 % 12
+    return `${h12}:${mm} ${h24 < 12 ? 'AM' : 'PM'}`
+  }
+  return `${String(h24).padStart(2, '0')}:${mm}`
 }
 
 function formatDateYYYYMMDD(dateObj) {
@@ -32,4 +43,4 @@ function formatDateYYYYMMDD(dateObj) {
   return `${yyyy}-${mm}-${dd}`
 }
 
-module.exports = { msToHHMMSS, formatTimeHHMMSS, formatDateYYYYMMDD }
+module.exports = { msToHHMMSS, formatTimeHHMM, formatDateYYYYMMDD }
