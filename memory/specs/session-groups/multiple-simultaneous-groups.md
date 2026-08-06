@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: added
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: medium
 depends_on: ["[[group-composition-and-drag]]"]
@@ -15,7 +15,7 @@ change_ref: "[[work-groups-history-time-format]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/work-groups-history-time-format"
 feature_branch: "feature/work-groups-history-time-format"
 commits: ["5c3bcd8f71a8ea4c73c6c2351df84555308b88cb"]
-mr: ""
+mr: "https://github.com/larayap/cronometro-app/pull/4"
 acceptance_criteria:
   - "El usuario puede formar un segundo grupo mientras el primero sigue existiendo, y ambos se muestran al mismo tiempo"
   - "La franja para crear un grupo sigue disponible después de formar uno o más grupos, mientras queden filas sueltas"
@@ -27,7 +27,7 @@ adrs: ["[[0008-sessions-and-groups-as-entry-metadata]]"]
 scope: ["src/components/CronometroAplicacion.vue"]
 verified_at: null
 created: "2026-08-05"
-updated: "2026-08-05"
+updated: "2026-08-06"
 tags: [capability-spec]
 ---
 

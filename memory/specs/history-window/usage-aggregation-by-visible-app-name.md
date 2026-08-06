@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: MODIFY
 supersedes: "[[usage-chart-by-interval]]"
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: high
 depends_on: ["[[sessions-json-persistence]]"]
@@ -15,7 +15,7 @@ change_ref: "[[work-groups-history-time-format]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/work-groups-history-time-format"
 feature_branch: "feature/work-groups-history-time-format"
 commits: ["da81de6bf377facd26ec61dc0ed63b39dc432cbc"]
-mr: ""
+mr: "https://github.com/larayap/cronometro-app/pull/4"
 acceptance_criteria:
   - "El gráfico muestra por defecto el tiempo por aplicación del día seleccionado, coincidiendo con la lista Por app"
   - "El usuario puede cambiar el alcance del gráfico a mes o a un rango de fechas propio"
@@ -28,7 +28,7 @@ adrs: ["[[0007-structured-sessions-json-with-one-shot-migration]]", "[[0010-char
 scope: ["src/utils/session-aggregate.js", "src/history/UsageChart.vue", "src/history/ByAppView.vue"]
 verified_at: null
 created: "2026-08-05"
-updated: "2026-08-05"
+updated: "2026-08-06"
 tags: [capability-spec]
 ---
 

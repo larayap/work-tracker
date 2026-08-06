@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: added
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: medium
 depends_on: ["[[session-time-without-seconds]]"]
@@ -15,7 +15,7 @@ change_ref: "[[work-groups-history-time-format]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/work-groups-history-time-format"
 feature_branch: "feature/work-groups-history-time-format"
 commits: ["4c673f98fea3808f2938574530619052bdf1f59d"]
-mr: ""
+mr: "https://github.com/larayap/cronometro-app/pull/4"
 acceptance_criteria:
   - "El panel de configuración ofrece elegir entre formato de 12 horas y 24 horas"
   - "Elegir 12 horas hace que los horarios de reloj mostrados incluyan AM/PM"
@@ -27,7 +27,7 @@ adrs: ["[[0006-userdata-json-persistence]]"]
 scope: ["src/main/ipc-handlers.js", "src/stores/settings.js", "src/components/OpcionesPanel.vue", "src/utils/time-format.js", "src/history/BySessionView.vue"]
 verified_at: null
 created: "2026-08-05"
-updated: "2026-08-05"
+updated: "2026-08-06"
 tags: [capability-spec]
 ---
 

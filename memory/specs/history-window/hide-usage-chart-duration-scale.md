@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: added
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: low
 depends_on: []
@@ -15,7 +15,7 @@ change_ref: "[[work-groups-history-time-format]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/work-groups-history-time-format"
 feature_branch: "feature/work-groups-history-time-format"
 commits: ["94b86b97a2a19dd79d30b60288e2537764a51ee5"]
-mr: ""
+mr: "https://github.com/larayap/cronometro-app/pull/4"
 acceptance_criteria:
   - "Debajo de las barras del gráfico no aparece ninguna escala de números de duración"
   - "Pasar el cursor sobre una barra sigue mostrando su tiempo exacto"
@@ -26,7 +26,7 @@ adrs: ["[[0010-charting-library-confined-to-history-bundle]]"]
 scope: ["src/history/UsageChart.vue"]
 verified_at: null
 created: "2026-08-05"
-updated: "2026-08-05"
+updated: "2026-08-06"
 tags: [capability-spec]
 ---
 

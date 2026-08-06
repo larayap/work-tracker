@@ -2,10 +2,10 @@
 type: change-state
 change_name: "work-groups-history-time-format"
 domain: "feature"
-status: active
+status: completed
 fast_path: "full"
-current_phase: sdd-archive
-phases_completed: [sdd-init, sdd-explore, sdd-propose, sdd-spec, sdd-design, sdd-tasks, sdd-apply, sdd-verify]
+current_phase: ""
+phases_completed: [sdd-init, sdd-explore, sdd-propose, sdd-spec, sdd-design, sdd-tasks, sdd-apply, sdd-verify, sdd-archive]
 spec_refs: ["[[multiple-simultaneous-groups]]", "[[hide-usage-chart-duration-scale]]", "[[usage-aggregation-by-visible-app-name]]", "[[judgment-fixes-sessions-groups-history-revised]]", "[[readable-session-title-typography]]", "[[session-time-without-seconds]]", "[[configurable-time-format-preference]]", "[[bright-chart-bars-on-dark-background]]"]
 jira_key: "POM-1"
 post_init_fields_done: true
@@ -15,8 +15,8 @@ repo: "/home/larayap/cronometro-app"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/work-groups-history-time-format"
 feature_branch: "feature/work-groups-history-time-format"
 integration_target: "main"
-mr: ""
-mr_status: pending
+mr: "https://github.com/larayap/cronometro-app/pull/4"
+mr_status: created
 mr_error: ""
 created: "2026-08-05"
 updated: "2026-08-06"

@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: added
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: low
 depends_on: ["[[inline-session-naming]]"]
@@ -15,7 +15,7 @@ change_ref: "[[work-groups-history-time-format]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/work-groups-history-time-format"
 feature_branch: "feature/work-groups-history-time-format"
 commits: ["6cad42c74a39fc94e63416d767a6aa59696c85a8"]
-mr: ""
+mr: "https://github.com/larayap/cronometro-app/pull/4"
 acceptance_criteria:
   - "El nombre de la aplicación, cuando la sesión no tiene título propio, se muestra en tipografía legible del sistema"
   - "El título de una sesión con nombre propio se muestra en la misma tipografía legible"
@@ -27,7 +27,7 @@ adrs: []
 scope: ["src/components/AppRow.vue"]
 verified_at: null
 created: "2026-08-05"
-updated: "2026-08-05"
+updated: "2026-08-06"
 tags: [capability-spec]
 ---
 

@@ -7,7 +7,7 @@ domain: "feature"
 delta_type: MODIFY
 supersedes: "[[judgment-fixes-sessions-groups-history]]"
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: critical
 depends_on: ["[[sessions-json-persistence]]", "[[installed-apps-data-integrity]]"]
@@ -15,7 +15,7 @@ change_ref: "[[work-groups-history-time-format]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/work-groups-history-time-format"
 feature_branch: "feature/work-groups-history-time-format"
 commits: []
-mr: ""
+mr: "https://github.com/larayap/cronometro-app/pull/4"
 acceptance_criteria:
   - "Salir de la aplicación cierra las sesiones abiertas de forma definitiva: no reaparece ninguna fila ni se registra una segunda entrada para la misma sesión"
   - "Una interrupción del proceso durante la escritura del historial no deja el historial completo ilegible"
@@ -26,7 +26,7 @@ adrs: ["[[0007-structured-sessions-json-with-one-shot-migration]]", "[[0009-type
 scope: ["src/main/monitor-engine.js", "src/main/session-log.js", "src/main/installed-apps-filter.js"]
 verified_at: null
 created: "2026-08-05"
-updated: "2026-08-05"
+updated: "2026-08-06"
 tags: [capability-spec, judgment-fix]
 ---
 
