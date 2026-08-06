@@ -15,34 +15,53 @@ function filterByInterval(entries, from, to) {
   return entries.filter((entry) => entry.date >= from && entry.date <= to)
 }
 
-// groupKeyOf(entry) → String — clave de agrupación de `aggregateByApp`. Todas
-// las entradas migradas desde el log de texto tienen `appId: null` (el
-// formato viejo nunca registró la ruta del ejecutable): agrupar por `appId`
-// desnudo colapsa TODOS los programas de una migración en una sola fila
-// (fix F1, judgment-report iteración 1). Con `appId` ausente, la clave
-// degrada al nombre del programa — mismo criterio de degradación que
-// `degradedAppId` en `monitor-engine.js` (prefijo para no colisionar con un
-// `appId` real que casualmente coincida con un nombre).
+// normalizeAppName(app) → String — recorta espacios de borde y normaliza
+// mayúsculas. `String(app ?? '')` blinda `app` nulo/ausente sin descartar la
+// entrada: un agregador que filtra datos oculta el problema y borra tiempo
+// registrado.
+function normalizeAppName(app) {
+  return String(app ?? '').trim().toLowerCase()
+}
+
+// groupKeyOf(entry) → String — clave de agrupación de `aggregateByApp`, por
+// nombre visible normalizado (ADR-0011). La clave NUNCA vuelve a mirar
+// `entry.appId`: agrupar por `appId` desnudo o degradar a él dejaba
+// `Chrome` y `Google Chrome` (mismo ejecutable, `appId` distinto por sesión)
+// repartidos en filas separadas, y una reinstalación con `appId` nuevo
+// duplicaba el mismo programa en el gráfico y en la lista. `appId` queda
+// como dato informativo de la fila fusionada (ver `aggregateByApp`), nunca
+// como clave — revertir esto reintroduce el defecto que ADR-0011 resuelve.
 function groupKeyOf(entry) {
-  return entry.appId != null ? entry.appId : `name:${entry.app}`
+  return `name:${normalizeAppName(entry.app)}`
 }
 
 // aggregateByApp(entries) → [{ key, appId, app, durationMs }] — suma
-// `durationMs` por `groupKeyOf(entry)`, orden descendente por duración
-// total. `key` viaja en cada fila para que los consumidores (`v-for`) tengan
-// una clave única incluso entre filas degradadas con `appId: null` — usar
-// `appId` ahí reintroduce la colisión que este agregador resuelve.
+// `durationMs` por `groupKeyOf(entry)` (nombre visible normalizado), orden
+// descendente por duración total. `key` es la única clave identificatoria:
+// `appId` de la fila fusionada es el primer `appId` no nulo entre los
+// miembros, o `null` — puramente informativo, ningún consumidor lo usa como
+// clave (ADR-0011). El rótulo `app` de la fila fusionada es el más corto
+// entre las variantes de escritura de los miembros (criterio F4 de
+// `installed-apps-filter.js:96-100`; ante empate de longitud gana la
+// primera aparición).
 function aggregateByApp(entries) {
   const totals = new Map()
 
   entries.forEach((entry) => {
     const key = groupKeyOf(entry)
     const existing = totals.get(key)
-    if (existing) {
-      existing.durationMs += entry.durationMs
-    } else {
-      totals.set(key, { key, appId: entry.appId, app: entry.app, durationMs: entry.durationMs })
+    if (!existing) {
+      totals.set(key, {
+        key,
+        appId: entry.appId != null ? entry.appId : null,
+        app: entry.app,
+        durationMs: entry.durationMs,
+      })
+      return
     }
+    existing.durationMs += entry.durationMs
+    if (existing.appId == null && entry.appId != null) existing.appId = entry.appId
+    if (String(entry.app ?? '').length < String(existing.app ?? '').length) existing.app = entry.app
   })
 
   return Array.from(totals.values()).sort((a, b) => b.durationMs - a.durationMs)
