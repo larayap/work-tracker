@@ -16,11 +16,14 @@ function filterByInterval(entries, from, to) {
 }
 
 // normalizeAppName(app) → String — recorta espacios de borde y normaliza
-// mayúsculas. `String(app ?? '')` blinda `app` nulo/ausente sin descartar la
-// entrada: un agregador que filtra datos oculta el problema y borra tiempo
-// registrado.
+// mayúsculas. `String(app == null ? '' : app)` blinda `app` nulo/ausente sin
+// descartar la entrada: un agregador que filtra datos oculta el problema y
+// borra tiempo registrado. Se usa `== null` (equivalente sin `??`, ES2020) en
+// vez de nullish coalescing porque el bundle del main process no lo
+// transpila; el comportamiento es idéntico: solo `null`/`undefined` caen al
+// default, cualquier otro valor (`0`, `false`, `'null'`) se conserva.
 function normalizeAppName(app) {
-  return String(app ?? '').trim().toLowerCase()
+  return String(app == null ? '' : app).trim().toLowerCase()
 }
 
 // groupKeyOf(entry) → String — clave de agrupación de `aggregateByApp`, por
@@ -61,7 +64,7 @@ function aggregateByApp(entries) {
     }
     existing.durationMs += entry.durationMs
     if (existing.appId == null && entry.appId != null) existing.appId = entry.appId
-    if (String(entry.app ?? '').length < String(existing.app ?? '').length) existing.app = entry.app
+    if (String(entry.app == null ? '' : entry.app).length < String(existing.app == null ? '' : existing.app).length) existing.app = entry.app
   })
 
   return Array.from(totals.values()).sort((a, b) => b.durationMs - a.durationMs)
