@@ -46,9 +46,9 @@ const OWNED_FILES = [
   'pomodoro-sessions.json',
 ]
 
-// isAlreadyInTarget(targetDir, fileName) → Boolean — "este archivo ya se
-// traspasó". Para siete de los ocho archivos eso es literalmente su presencia
-// en el destino.
+// isAlreadyInTarget(sourceDir, targetDir, fileName) → Boolean — "este archivo
+// ya se traspasó". Para siete de los ocho archivos eso es literalmente su
+// presencia en el destino.
 //
 // `usage-log.txt` es la excepción, y es la razón por la que esta decisión no
 // puede quedar inline en `migrateFileAt` (fix F2, judgment-report del cambio
@@ -59,18 +59,29 @@ const OWNED_FILES = [
 // lo volvía a copiar del origen: el traspaso dejaba de ser one-shot y el
 // destino terminaba con el log duplicado (el recién copiado más el `.bak` de
 // idéntico contenido), en contra del Scenario "Segundo arranque no repite el
-// traspaso". Peor todavía, ese log rezagado quedaba de forma permanente en el
+// traspaso". Ese log rezagado quedaba además de forma permanente en el
 // `userData` nuevo como cebo para ADR-0007: si el usuario borrara alguna vez
 // su `sessions.json`, el arranque siguiente resucitaría el historial legado y
 // descartaría todo lo grabado desde el traspaso.
 //
-// La presencia del `.bak` en el destino es, entonces, evidencia de traspaso
-// consumado tanto como la del log mismo.
-function isAlreadyInTarget(targetDir, fileName) {
+// Un `.bak` en el destino es entonces evidencia de traspaso consumado — pero
+// **solo si no pudo haber llegado desde el origen** (fix F6, iteración 2 del
+// mismo judgment: los dos jueces encontraron la regresión por separado).
+// `usage-log.txt.bak` también es uno de los ocho archivos que se traspasan,
+// así que un origen que tiene log y respaldo a la vez puede dejar el `.bak`
+// en el destino mientras la copia del log falla. Sin esta condición, ese
+// `.bak` recién copiado se leía como "ya traspasado" y el log no se
+// reintentaba nunca más, justo al revés de la propiedad de reintento que
+// ADR-0013 promete. Cuando el origen trae su propio `.bak`, la única
+// evidencia admisible es la presencia del log mismo.
+function isAlreadyInTarget(sourceDir, targetDir, fileName) {
   if (fs.existsSync(path.join(targetDir, fileName))) {
     return true
   }
   if (fileName === LEGACY_LOG_FILENAME) {
+    if (fs.existsSync(path.join(sourceDir, LEGACY_LOG_BACKUP_FILENAME))) {
+      return false
+    }
     return fs.existsSync(path.join(targetDir, LEGACY_LOG_BACKUP_FILENAME))
   }
   return false
@@ -91,7 +102,7 @@ function migrateFileAt(sourceDir, targetDir, fileName) {
   if (!fs.existsSync(sourcePath)) {
     return 'skipped'
   }
-  if (isAlreadyInTarget(targetDir, fileName)) {
+  if (isAlreadyInTarget(sourceDir, targetDir, fileName)) {
     return 'skipped'
   }
 
