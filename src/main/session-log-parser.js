@@ -89,6 +89,16 @@ function parseLegacyLog(text) {
 // tres pasos de ADR-0007, idempotente y no destructivo. Rutas explícitas
 // como parámetro: este módulo no resuelve `userData`, para mantenerse libre
 // de `electron` (Tarea 14 lo hace en `session-log.js`).
+//
+// PRECONDICIÓN DEL LLAMADOR: invocar esta función **solo cuando `legacyPath`
+// existe**. Si no existe, el paso 1 publica un `sessions.json = []`, y ese
+// archivo vacío es irreversible: bloquea la absorción de cualquier
+// `usage-log.txt` que aparezca después. El traspaso de `userdata-migration.js`
+// puede hacer aparecer uno en un arranque posterior (si la copia falló en el
+// primero), así que publicar el archivo vacío convierte un fallo de E/S
+// transitorio en pérdida permanente de visibilidad del historial. Esa fue la
+// causa del hallazgo crítico del judgment del cambio open-source-readiness;
+// la guarda vive en `session-log.js::migrateLegacyLog()`, único llamador.
 function migrateLegacyLogAt({ sessionsPath, legacyPath, backupPath }) {
   if (!fs.existsSync(sessionsPath)) {
     const text = fs.existsSync(legacyPath) ? fs.readFileSync(legacyPath, 'utf-8') : ''
