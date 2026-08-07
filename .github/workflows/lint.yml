@@ -1,0 +1,33 @@
+name: Lint
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # Sin --ignore-scripts (a diferencia de lo documentado originalmente en
+      # ADR-0014/D-11): vue-cli-plugin-electron-builder hace
+      # require('electron') a nivel de módulo al cargarse — lo ejecuta
+      # vue-cli-service para CUALQUIER comando, lint incluido, no solo
+      # electron:build. Sin el postinstall propio de electron (que descarga
+      # el binario y escribe node_modules/electron/path.txt), ese require
+      # lanza antes de que ESLint corra. Verificado en un entorno Linux
+      # equivalente a este runner: npm ci a secas (con scripts) termina en
+      # ~12s y electron-builder install-app-deps no falla con
+      # active-win@8.2.1 — la premisa de que ese postinstall es
+      # "costoso/roto en Linux" no se sostuvo contra el código real.
+      - run: npm ci
+
+      - run: npm run lint -- --no-fix
