@@ -31,7 +31,7 @@ function createTray() {
   tray = new Tray(iconPath)
 
   // Tooltip que aparece al pasar el ratón sobre el ícono
-  tray.setToolTip('Workout')
+  tray.setToolTip('Work Tracker')
 
   // Menú contextual al hacer clic derecho en el ícono
   const contextMenu = Menu.buildFromTemplate([
@@ -62,7 +62,7 @@ async function createWindow() {
   mainWindow  = new BrowserWindow({
     width: 500,
     height: 330,
-    title: 'Workout',
+    title: 'Work Tracker',
     icon: path.join(__static, 'img', 'icon-work.png'),
     backgroundColor: '#0f0f0f', // Cambia este valor por el color que desees
     frame: false,

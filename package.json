@@ -1,7 +1,9 @@
 {
-  "name": "cronometro-apps",
-  "version": "1.0.0",
+  "name": "work-tracker",
+  "version": "2.0.0",
   "private": true,
+  "license": "MIT",
+  "repository": "github:larayap/work-tracker",
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
@@ -9,13 +11,10 @@
     "electron:build": "vue-cli-service electron:build",
     "electron:serve": "vue-cli-service electron:serve",
     "postinstall": "electron-builder install-app-deps",
-    "postuninstall": "electron-builder install-app-deps",
-    "start": "electron-forge start",
-    "package": "electron-forge package",
-    "make": "electron-forge make"
+    "postuninstall": "electron-builder install-app-deps"
   },
-  "author": "Flama",
-  "description": "Aplicación para cronometrar apps",
+  "author": "larayap",
+  "description": "Cronómetro de tiempo de uso de aplicaciones de escritorio para Windows, con historial, pomodoro y selección de programas monitoreados.",
   "main": "background.js",
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
