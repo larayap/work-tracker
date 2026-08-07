@@ -65,19 +65,20 @@ module.exports = {
     electronBuilder: {
       removeBuildField: true,
       builderOptions: {
-        appId: 'com.tuapp.cronometroapps',
-        productName: 'Workout',
+        appId: 'com.worktracker.app',
+        productName: 'Work Tracker',
         publish: [
           {
             provider: 'github',
             owner: 'larayap',
-            repo: 'cronometro-app'
+            repo: 'work-tracker',
+            releaseType: 'release'
           }
         ],
         win: {
           target: 'nsis',
           icon: 'public/icon-work-256.png',
-          executableName: 'Workout'
+          executableName: 'Work Tracker'
         },
      /*    mac: {
           target: 'dmg',
