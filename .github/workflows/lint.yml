@@ -6,11 +6,24 @@ on:
   push:
     branches: [main]
 
+# El job solo lee el código: no crea releases, no empuja nada, no comenta.
+# Sin este bloque, el GITHUB_TOKEN hereda el permiso por defecto del
+# repositorio, que en repositorios creados antes de feb-2023 es de escritura
+# sobre todos los scopes.
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
+      # persist-credentials: false — por defecto, checkout deja el
+      # GITHUB_TOKEN escrito en .git/config, y el paso siguiente (`npm ci`)
+      # ejecuta los scripts de ciclo de vida de un árbol de ~1650 paquetes de
+      # terceros. Ningún paso posterior necesita credenciales de git.
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v4
         with:

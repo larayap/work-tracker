@@ -29,6 +29,17 @@ macOS ni Linux hoy.
 Descargá el instalador (`.exe`) más reciente desde la sección
 [Releases](https://github.com/larayap/work-tracker/releases) del repositorio y ejecutalo.
 
+### Si venís de una versión anterior (Workout)
+
+Work Tracker se instala **junto a** la versión anterior en vez de reemplazarla. La primera vez
+que lo abras, tu historial, tus preferencias y tu selección de programas se traspasan solos
+desde la instalación vieja; no tenés que hacer nada. Los datos originales quedan intactos como
+respaldo.
+
+Una vez que compruebes que tu historial está completo, **desinstalá la versión anterior**. Si
+seguís abriendo las dos, cada una registra su propio historial por separado y el traspaso ya no
+vuelve a ocurrir: terminarías con tu tiempo repartido entre dos aplicaciones.
+
 ## Compilar desde el código fuente
 
 Requiere la versión de Node declarada en [`.nvmrc`](.nvmrc) (Node 16.20.2 — el bundle del
