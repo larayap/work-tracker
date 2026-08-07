@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      # Guarda tag <-> versión, antes de instalar o compilar nada.
+      # electron-builder no lee el tag: arma el nombre de la release como
+      # 'v' + package.json.version. Sin esta guarda, un tag inconsistente con
+      # la versión declarada publicaría igual, con un nombre distinto del
+      # tag empujado.
+      - name: Verificar que el tag coincide con package.json.version
+        shell: bash
+        run: |
+          expected="v$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "$expected" ]; then
+            echo "El tag '$GITHUB_REF_NAME' no coincide con la versión declarada ('$expected')."
+            exit 1
+          fi
+
+      # Con scripts (a diferencia de lint.yml): active-win@8.2.1 trae un
+      # binding nativo que electron-builder install-app-deps (el postinstall
+      # del proyecto) debe reconstruir contra el ABI de Electron.
+      - run: npm ci
+
+      - name: Compilar y publicar el instalador
+        run: npm run electron:build -- --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
