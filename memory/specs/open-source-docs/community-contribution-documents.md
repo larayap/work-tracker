@@ -7,7 +7,7 @@ domain: "debt"
 delta_type: null
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: critical
 depends_on: []
@@ -15,7 +15,7 @@ change_ref: "[[open-source-readiness]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/open-source-readiness"
 feature_branch: "feature/open-source-readiness"
 commits: ["a692240"]
-mr: ""
+mr: "https://github.com/larayap/cronometro-app/pull/5"
 acceptance_criteria:
   - "Existe un documento de licencia con el texto completo, el titular vigente y el año"
   - "El documento de presentación describe qué hace la aplicación, para quién, el sistema operativo requerido, la instalación desde binario publicado y la compilación desde el código"

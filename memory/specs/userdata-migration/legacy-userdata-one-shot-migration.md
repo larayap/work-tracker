@@ -7,7 +7,7 @@ domain: "debt"
 delta_type: null
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: critical
 depends_on: ["[[unified-product-identity]]"]
@@ -15,7 +15,7 @@ change_ref: "[[open-source-readiness]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/open-source-readiness"
 feature_branch: "feature/open-source-readiness"
 commits: ["8bb03a7"]
-mr: ""
+mr: "https://github.com/larayap/cronometro-app/pull/5"
 acceptance_criteria:
   - "Un arranque sin instalación anterior no traspasa ningún dato y la aplicación arranca vacía"
   - "Un arranque con datos de una instalación anterior deja disponibles el historial, las preferencias y la selección guardada, con contenido idéntico al original"

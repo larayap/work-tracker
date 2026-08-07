@@ -7,7 +7,7 @@ domain: "debt"
 delta_type: null
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: high
 depends_on: []
@@ -15,7 +15,7 @@ change_ref: "[[open-source-readiness]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/open-source-readiness"
 feature_branch: "feature/open-source-readiness"
 commits: ["69e698b"]
-mr: ""
+mr: "https://github.com/larayap/cronometro-app/pull/5"
 acceptance_criteria:
   - "El instalador, el acceso directo instalado y el título de la ventana muestran el mismo nombre de producto"
   - "El dato de autoría del paquete distribuible coincide con el titular declarado en la licencia"

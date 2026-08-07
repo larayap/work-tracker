@@ -7,7 +7,7 @@ domain: "debt"
 delta_type: null
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: medium
 depends_on: []
@@ -15,7 +15,7 @@ change_ref: "[[open-source-readiness]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/open-source-readiness"
 feature_branch: "feature/open-source-readiness"
 commits: ["319d1f3"]
-mr: ""
+mr: "https://github.com/larayap/cronometro-app/pull/5"
 acceptance_criteria:
   - "Existe un único sistema de build capaz de producir el instalador, sin un segundo sistema inactivo declarado en el proyecto"
   - "La verificación de estilo de código aplica el mismo conjunto de reglas en cualquier entorno donde se ejecute"

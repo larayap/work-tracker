@@ -2,16 +2,16 @@
 type: change-state
 change_name: "open-source-readiness"
 domain: "debt"
-status: active
+status: completed
 fast_path: "spec-first"
-current_phase: sdd-archive
-phases_completed: [sdd-init, sdd-propose, sdd-spec, sdd-design, sdd-tasks, sdd-apply, sdd-verify, sdd-judgment]
+current_phase: ""
+phases_completed: [sdd-init, sdd-propose, sdd-spec, sdd-design, sdd-tasks, sdd-apply, sdd-verify, sdd-judgment, sdd-archive]
 spec_refs: ["[[unified-product-identity]]", "[[legacy-userdata-one-shot-migration]]", "[[community-contribution-documents]]", "[[single-build-and-lint-pipeline]]", "[[pr-lint-and-tagged-release-workflow]]"]
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/open-source-readiness"
 feature_branch: "feature/open-source-readiness"
 integration_target: "main"
-mr: ""
-mr_status: pending
+mr: "https://github.com/larayap/cronometro-app/pull/5"
+mr_status: created
 mr_error: ""
 created: "2026-08-06"
 updated: "2026-08-06"

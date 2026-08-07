@@ -7,7 +7,7 @@ domain: "debt"
 delta_type: null
 supersedes: null
 superseded_by: null
-status: review
+status: completed
 assigned_agent: "sdd-apply"
 priority: high
 depends_on: ["[[unified-product-identity]]", "[[single-build-and-lint-pipeline]]"]
@@ -15,7 +15,7 @@ change_ref: "[[open-source-readiness]]"
 worktree: "/home/larayap/cronometro-app/.sdd/worktrees/open-source-readiness"
 feature_branch: "feature/open-source-readiness"
 commits: ["81e7fbf"]
-mr: ""
+mr: "https://github.com/larayap/cronometro-app/pull/5"
 acceptance_criteria:
   - "Toda contribución de código recibe una verificación automática de estilo, visible antes de revisarla"
   - "Publicar una etiqueta de versión que coincide con la versión declarada produce un instalador disponible en Releases"
