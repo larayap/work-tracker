@@ -6,6 +6,7 @@
 // resuelven las rutas reales con `app.getPath('userData')` y se delega.
 'use strict'
 
+const fs = require('fs')
 const path = require('path')
 const { app } = require('electron')
 const jsonStore = require('./json-store.js')
@@ -32,15 +33,33 @@ function getLegacyBackupFilePath() {
 // migrateLegacyLog() — se invoca una vez al arrancar, antes de
 // `monitorEngine.loadSelection()` (ADR-0007: si el motor pudiera abrir
 // sesiones antes de que esto corra, crearía `sessions.json` prematuramente y
-// la migración se saltearía). Al terminar, `sessions.json` existe siempre
-// (la migración lo garantiza, migrado o ya existente de antes), así que
-// cargarlo con `jsonStore.readJson` es seguro.
+// la migración se saltearía).
+//
+// La guarda `existsSync(usage-log.txt)` (fix F1, judgment-report del cambio
+// open-source-readiness) es lo que hace cierta la propiedad de reintento que
+// ADR-0013 le atribuye al traspaso de `userData`. Sin ella, el protocolo de
+// ADR-0007 publicaba `sessions.json = []` incluso cuando no había ningún
+// historial legado que migrar — y ese archivo vacío es irreversible: bloquea
+// para siempre el paso 1 de ADR-0007. La secuencia que rompía era ésta: el
+// traspaso de `userdata-migration.js` falla al copiar `usage-log.txt` en el
+// primer arranque (archivo tomado por un antivirus, disco lleno momentáneo),
+// se publica un `sessions.json` vacío, y en el arranque siguiente el
+// `usage-log.txt` sí se copia pero ya nadie lo parsea: ADR-0007 lo renombra
+// a `.bak` sin absorberlo y el historial completo queda invisible.
+//
+// No publicar nada cuando no hay nada que migrar es equivalente para el
+// resto de la aplicación: `jsonStore.readJson` tolera el archivo ausente y
+// devuelve el fallback (ADR-0006), y `appendSessions` crea `sessions.json`
+// en el primer cierre de sesión. `sessions.json` deja de existir siempre
+// después de este punto, y ningún otro consumidor lo asume.
 function migrateLegacyLog() {
-  migrateLegacyLogAt({
-    sessionsPath: getSessionsFilePath(),
-    legacyPath: getLegacyLogFilePath(),
-    backupPath: getLegacyBackupFilePath(),
-  })
+  if (fs.existsSync(getLegacyLogFilePath())) {
+    migrateLegacyLogAt({
+      sessionsPath: getSessionsFilePath(),
+      legacyPath: getLegacyLogFilePath(),
+      backupPath: getLegacyBackupFilePath(),
+    })
+  }
   sessions = jsonStore.readJson(getSessionsFilePath(), [])
 }
 

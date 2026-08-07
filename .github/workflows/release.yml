@@ -12,7 +12,14 @@ jobs:
   release:
     runs-on: windows-latest
     steps:
+      # persist-credentials: false — el token con permiso de escritura que
+      # este workflow declara no tiene por qué quedar en .git/config mientras
+      # `npm ci` ejecuta los scripts de ciclo de vida de las dependencias.
+      # electron-builder lo recibe por separado, en GH_TOKEN del paso de
+      # publicación.
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v4
         with:
