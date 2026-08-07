@@ -85,10 +85,22 @@ las consultas por IPC. La asimetría escritura-en-un-módulo / lectura-en-otro d
 La **migración es one-shot, idempotente y no destructiva**, con este orden invariante al
 arrancar, antes de que el motor pueda cerrar ninguna sesión:
 
+0. El protocolo solo se ejecuta si `usage-log.txt` existe (corrección del judgment de
+   [[open-source-readiness]]; ver más abajo).
 1. Si `sessions.json` ya existe → no se migra nada.
-2. Si no existe: se parsea `usage-log.txt` completo (si falta, el resultado es `[]`), se
-   escribe en `sessions.json.tmp` y recién entonces se renombra a `sessions.json`.
+2. Si no existe: se parsea `usage-log.txt` completo, se escribe en `sessions.json.tmp` y
+   recién entonces se renombra a `sessions.json`.
 3. Si `usage-log.txt` existe y `usage-log.txt.bak` no, se renombra el original a `.bak`.
+
+> **Corrección (judgment de [[open-source-readiness]], 2026-08-06).** El paso 2 decía "si falta
+> `usage-log.txt`, el resultado es `[]`" y publicaba ese `sessions.json` vacío. Eso era inocuo
+> mientras `usage-log.txt` no podía aparecer *después* del primer arranque, y dejó de serlo con
+> el traspaso de `userData` de [[0013-per-file-userdata-handover-on-identity-rename]]: si la
+> copia del log fallaba en el primer arranque, el `sessions.json` vacío bloqueaba para siempre
+> la absorción del log que llegara en el siguiente. De ahí el paso 0, implementado como guarda
+> en `session-log.js::migrateLegacyLog()`, su único llamador. `jsonStore.readJson` ya tolera el
+> archivo ausente (ADR-0006), así que no publicar nada cuando no hay nada que migrar es
+> equivalente para el resto de la aplicación.
 
 Los pasos 2 y 3 son independientes e idempotentes, y **el archivo original nunca se borra**.
 Una interrupción antes del renombre del paso 2 deja el `.txt` intacto y sin migrar; una

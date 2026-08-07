@@ -23,13 +23,13 @@ acceptance_criteria:
   - "Salir de la aplicación con filas abiertas registra una entrada de historial por cada una"
   - "El historial anterior en texto plano se migra una sola vez a formato estructurado, sin perder datos y sin borrar el archivo original"
   - "Una entrada de historial conserva el nombre de la sesión y la identificación del grupo cuando corresponde"
-related: ["[[row-lifecycle-persistence-by-type]]"]
+related: ["[[row-lifecycle-persistence-by-type]]", "[[legacy-userdata-one-shot-migration]]"]
 affects: ["[[inline-session-naming]]", "[[group-composition-and-drag]]", "[[session-view]]", "[[usage-chart-by-interval]]"]
 adrs: ["[[0002-main-process-owns-monitoring-state]]", "[[0006-userdata-json-persistence]]"]
 scope: ["src/main/session-log.js", "src/background.js", "src/main/json-store.js"]
 verified_at: "2026-08-02"
 created: "2026-08-02"
-updated: "2026-08-02"
+updated: "2026-08-06"
 tags: [capability-spec]
 ---
 
@@ -189,3 +189,6 @@ camino disparado por `tick()` sobre un proceso que muere de verdad (enumeración
 - [[session-view]] — consume el historial estructurado para mostrar la vista por sesión
 - [[usage-chart-by-interval]] — consume el historial estructurado para agregar por
   intervalo de fechas arbitrario
+- [[legacy-userdata-one-shot-migration]] — el traspaso de `userData` al renombrar el
+  producto pone a disposición, bajo la identidad nueva, el `sessions.json` que esta spec
+  persiste

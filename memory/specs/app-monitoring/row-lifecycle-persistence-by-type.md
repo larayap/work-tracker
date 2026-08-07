@@ -23,13 +23,13 @@ acceptance_criteria:
   - "Un programa automático que salió del listado visible por cualquiera de esos dos eventos permanece en la selección guardada y reaparece con fila propia la siguiente vez que su proceso se abre"
   - "Un programa manual que salió del listado visible por cualquiera de esos dos eventos deja de estar en la selección guardada"
   - "Perder el foco nunca saca una fila del listado visible por sí solo"
-related: ["[[two-state-row-machine]]", "[[saved-selection-only-monitoring]]", "[[installed-apps-data-integrity]]", "[[deselect-from-saved-selection]]"]
+related: ["[[two-state-row-machine]]", "[[saved-selection-only-monitoring]]", "[[installed-apps-data-integrity]]", "[[deselect-from-saved-selection]]", "[[legacy-userdata-one-shot-migration]]"]
 affects: ["[[sessions-json-persistence]]", "[[simultaneous-limit]]", "[[empty-state]]", "[[automatic-bw-icons]]"]
 adrs: ["[[0001-two-signal-monitoring-engine]]", "[[0002-main-process-owns-monitoring-state]]"]
 scope: ["src/main/monitor-engine.js", "src/main/ipc-handlers.js", "src/main/json-store.js"]
 verified_at: "2026-08-02"
 created: "2026-08-02"
-updated: "2026-08-02"
+updated: "2026-08-06"
 tags: [capability-spec]
 ---
 
@@ -188,3 +188,6 @@ requiere la app corriendo y queda sin marcar.
 - [[empty-state]] — describe cómo se ve el listado visible cuando la última fila sale por
   cualquiera de los dos eventos de este ciclo de vida
 - [[automatic-bw-icons]] — cada fila que entra al listado trae consigo el ícono del programa
+- [[legacy-userdata-one-shot-migration]] — el traspaso de `userData` al renombrar el
+  producto pone a disposición, bajo la identidad nueva, la `monitored-selection.json` que
+  esta spec gobierna

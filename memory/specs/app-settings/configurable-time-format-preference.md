@@ -21,7 +21,7 @@ acceptance_criteria:
   - "Elegir 12 horas hace que los horarios de reloj mostrados incluyan AM/PM"
   - "Elegir 24 horas hace que los horarios de reloj mostrados no incluyan AM/PM"
   - "La preferencia elegida se mantiene después de cerrar y volver a abrir la aplicación"
-related: ["[[session-time-without-seconds]]", "[[session-view]]"]
+related: ["[[session-time-without-seconds]]", "[[session-view]]", "[[legacy-userdata-one-shot-migration]]"]
 affects: []
 adrs: ["[[0006-userdata-json-persistence]]"]
 scope: ["src/main/ipc-handlers.js", "src/stores/settings.js", "src/components/OpcionesPanel.vue", "src/utils/time-format.js", "src/history/BySessionView.vue"]
@@ -140,3 +140,6 @@ formateo para que la preferencia se aplique de forma consistente.
 - [[session-time-without-seconds]] — introduce el punto de formateo de hora sobre el que
   esta preferencia aplica su parámetro de formato
 - [[session-view]] — la vista donde hoy se observa el efecto de esta preferencia
+- [[legacy-userdata-one-shot-migration]] — el traspaso de `userData` al renombrar el
+  producto pone a disposición, bajo la identidad nueva, el `settings.json` donde vive esta
+  preferencia
