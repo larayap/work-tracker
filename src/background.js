@@ -12,6 +12,7 @@ const platformWindows = require('./main/platform-windows.js')
 const monitorEngine = require('./main/monitor-engine.js')
 const sessionLog = require('./main/session-log.js')
 const { registerIpcHandlers } = require('./main/ipc-handlers.js')
+const userDataMigration = require('./main/userdata-migration.js')
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
@@ -132,6 +133,23 @@ function showMainWindow() {
 // síntoma (seguiría creándose una ventana de más en cada arranque), mientras
 // que la causa raíz es el doble createWindow().
 app.whenReady().then(async () => {
+  // Traspaso único de userData de la identidad anterior del producto
+  // (D-4/ADR-0013). Primera sentencia del callback, antes de cualquier otra
+  // lectura de settings, cachés o selección monitoreada, y antes de
+  // sessionLog.migrateLegacyLog() (línea de más abajo, dentro de
+  // createWindow()) para que un usage-log.txt traído desde la identidad
+  // anterior quede disponible a tiempo para esa migración. Va acá y no
+  // dentro de createWindow() porque esa función es reentrante (la llaman
+  // whenReady, showMainWindow() y el handler de activate).
+  const userDataMigrationResult = userDataMigration.migrateUserDataAt({
+    sourceDir: path.join(app.getPath('appData'), userDataMigration.LEGACY_USERDATA_DIRNAME),
+    targetDir: app.getPath('userData'),
+  })
+  console.log(`Traspaso de userData: ${userDataMigrationResult.copied.length} copiado(s), ${userDataMigrationResult.skipped.length} omitido(s).`)
+  if (userDataMigrationResult.failed.length > 0) {
+    console.error('Traspaso de userData — archivos fallidos:', userDataMigrationResult.failed)
+  }
+
   if (isDevelopment && !process.env.IS_TEST) {
     // Install Vue Devtools
     try {
