@@ -27,3 +27,8 @@ pnpm-debug.log*
 
 # Área de trabajo temporal del pipeline SDD interno del equipo
 /.sdd
+
+# Corpus del pipeline SDD interno (specs, ADRs, perfil y bitácora del proyecto).
+# Vive solo en la máquina del mantenedor: contiene rutas locales y notas de
+# trabajo que no aportan nada a quien contribuye al código.
+/memory
