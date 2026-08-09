@@ -305,6 +305,20 @@ export default {
   padding: 0;
 }
 
+/* I-2 (judgment ronda 2, keyboard-focus-indicator-per-palette): el anillo global
+   (--focus-ring: #e0e0e0) se dibuja fuera del control, sobre el fondo de `.session-item`.
+   `getFillStyle()` pinta ese fondo con #d3d3d3 en una sesión completada (y con un split
+   sólido que llega a #d3d3d3 en la sesión en curso) — contraste 1.13:1, imperceptible.
+   #6f6f6f da 3.36:1 sobre #d3d3d3 y 4.18:1 sobre el negro por defecto de una sesión
+   pendiente (ambos ≥ 3:1, WCAG 2.2 SC 1.4.11 — ver design.md § D-2.3), así que el
+   indicador se distingue en los tres estados, no solo en el que tenía la regla global.
+   Acotado a estos dos controles: no toca `--focus-ring` ni ningún otro consumidor del
+   token compartido. */
+.edit-input:focus-visible,
+.remove-btn:focus-visible {
+  outline-color: #6f6f6f;
+}
+
 .controls {
   margin-bottom: 15px;
 }
