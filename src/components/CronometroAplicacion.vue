@@ -4,7 +4,10 @@
       <button class="button-history" @click="openHistoryWindow()" title="Ver historial">
         <font-awesome-icon icon="bars" />
       </button>
-      <h1 style="margin: 0;">Work</h1>
+      <h1 class="module-title">
+        <img src="@/assets/work_worktracker.webp" alt="" class="module-icon" />
+        Work Tracker
+      </h1>
       <button
         class="button-add"
         @click="showSelector = true"
@@ -282,6 +285,17 @@ export default {
   position: relative;
   width: 100%;
   justify-content: center;
+}
+.module-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.module-icon {
+  height: 20px;
+  max-width: 20px;
+  object-fit: contain;
 }
 .display {
   display: inline;

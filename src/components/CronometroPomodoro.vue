@@ -1,6 +1,9 @@
 <template>
   <div class="pomodoro-dynamic">
-    <h1 class="title-pomodoro">Pomodoro</h1>
+    <h1 class="title-pomodoro">
+      <img src="@/assets/pomodoro_worktracker.webp" alt="" class="module-icon" />
+      Pomodoro
+    </h1>
     <!-- Sesiones: arrastrables -->
     <div class="session-list" ref="sessionList">
       <draggable 
@@ -243,6 +246,15 @@ export default {
 .title-pomodoro {
   font-size: 2rem;
   margin: 0 10px 10px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+.module-icon {
+  height: 20px;
+  max-width: 20px;
+  object-fit: contain;
 }
 
 .session-list {
