@@ -8,7 +8,10 @@
           Instaladas
         </button>
         <button :class="{ active: tab === 'open' }" @click="tab = 'open'">
-          Procesos abiertos
+          Abiertas
+        </button>
+        <button :class="{ active: tab === 'added' }" @click="tab = 'added'">
+          Agregadas
         </button>
       </div>
 
@@ -59,7 +62,7 @@
         </ul>
       </div>
 
-      <div v-else>
+      <div v-else-if="tab === 'open'">
         <ul class="selector-list">
           <li
             v-for="win in filteredOpenWindows"
@@ -68,6 +71,28 @@
             @click="chooseOpenWindow(win)"
           >
             {{ win.appName }}
+          </li>
+        </ul>
+      </div>
+
+      <div v-else>
+        <p v-if="addedApps.length === 0" class="empty-text">{{ addedEmptyMessage }}</p>
+        <ul v-else class="selector-list">
+          <li
+            v-for="entry in addedApps"
+            :key="entry.appId"
+            class="checked"
+            @click="choose(entry)"
+          >
+            <!-- Toda entrada de esta vista está seleccionada por construcción: el ✓ es
+                 literal y el clic sobre ella cae siempre en la rama de baja de `choose()`. -->
+            <span class="check-mark">✓</span>
+            <img
+              class="installed-icon"
+              :src="monitoredApps.icons[entry.exePath] || fallbackIcon"
+              :alt="`Icono de ${entry.name}`"
+            />
+            {{ entry.name }}
           </li>
         </ul>
       </div>
@@ -117,11 +142,31 @@ export default {
       if (!q) return this.openWindows
       return this.openWindows.filter((win) => win.appName.toLowerCase().includes(q))
     },
+    // Pestaña "Agregadas" (added-apps-review-tab): fuente `monitoredApps.selection`, no
+    // `installedApps` — una entrada dada de alta desde "Abiertas" puede no estar en el
+    // listado de instaladas.
+    addedApps() {
+      const q = this.query.trim().toLowerCase()
+      const entries = this.monitoredApps.selection
+      if (!q) return entries
+      return entries.filter((entry) => (entry.name || '').toLowerCase().includes(q))
+    },
+    addedEmptyMessage() {
+      return this.query.trim()
+        ? 'Ninguna aplicación agregada coincide con la búsqueda.'
+        : 'Todavía no hay aplicaciones agregadas. Agrégalas desde «Instaladas» o «Abiertas».'
+    },
   },
   created() {
     this.loadInstalled()
     this.loadOpenWindows()
     ipcRenderer.on('installed-apps-updated', this.handleInstalledUpdated)
+    // Íconos de la selección guardada (pestaña "Agregadas"): una entrada dada de alta
+    // desde "Abiertas" puede no estar en el listado de instaladas, así que el
+    // `ensureIcons` de `loadInstalled` no la cubre.
+    this.monitoredApps.ensureIcons(
+      this.monitoredApps.selection.map((entry) => entry.exePath).filter(Boolean)
+    )
   },
   beforeUnmount() {
     ipcRenderer.removeListener('installed-apps-updated', this.handleInstalledUpdated)
@@ -221,6 +266,8 @@ export default {
   padding: 6px;
   cursor: pointer;
   border-radius: 4px;
+  font-size: 0.8rem;
+  white-space: nowrap;
 }
 .tabs button.active {
   background: #6f6f6f;
@@ -263,7 +310,8 @@ export default {
   background: #6f6f6f;
   color: #fff;
 }
-.loading-text {
+.loading-text,
+.empty-text {
   font-size: 0.85rem;
   color: #ccc;
   text-align: center;
