@@ -1,3 +1,4 @@
+import '@/styles/tokens.css'
 import { createApp } from 'vue'
 import HistoryView from './HistoryView.vue'
 import VCalendar from 'v-calendar'
