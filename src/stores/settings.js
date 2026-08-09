@@ -12,6 +12,7 @@ export const useSettingsStore = defineStore('settings', {
     masterVolume: 1,
     interactionVolume: 1,
     timeFormat: '24h',
+    startupVisibility: 'window',
   }),
   actions: {
     async load() {
@@ -23,6 +24,7 @@ export const useSettingsStore = defineStore('settings', {
         // mergea `defaultSettings`); repetirlo acá crearía una segunda
         // fuente de verdad del default de producto.
         this.timeFormat = settings.timeFormat
+        this.startupVisibility = settings.startupVisibility
       }
       setMasterVolume(this.masterVolume)
       setInteractionVolume(this.interactionVolume)
@@ -36,6 +38,7 @@ export const useSettingsStore = defineStore('settings', {
         masterVolume: this.masterVolume,
         interactionVolume: this.interactionVolume,
         timeFormat: this.timeFormat,
+        startupVisibility: this.startupVisibility,
       })
     },
     setMaster(v) {
@@ -50,6 +53,10 @@ export const useSettingsStore = defineStore('settings', {
     },
     setTimeFormat(v) {
       this.timeFormat = v
+      this.persist()
+    },
+    setStartupVisibility(v) {
+      this.startupVisibility = v
       this.persist()
     },
   },

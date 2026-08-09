@@ -93,6 +93,10 @@ module.exports = {
           perMachine: false,
           allowElevation: true,
           allowToChangeInstallationDirectory: true,
+          // Casilla opt-in de arranque automático con Windows
+          // (installer-opt-in-autostart): agrega los macros
+          // customPageAfterChangeDir/customInstall/customUnInstall.
+          include: 'build/installer.nsh',
           // installerIcon: 'build/icons/installerIcon.ico',
           // uninstallerIcon: 'build/icons/uninstallerIcon.ico',
           // installerHeaderIcon: 'build/icons/installerHeaderIcon.ico'

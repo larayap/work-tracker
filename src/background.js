@@ -11,7 +11,7 @@ const fs = require('fs')
 const platformWindows = require('./main/platform-windows.js')
 const monitorEngine = require('./main/monitor-engine.js')
 const sessionLog = require('./main/session-log.js')
-const { registerIpcHandlers } = require('./main/ipc-handlers.js')
+const { registerIpcHandlers, readSettings } = require('./main/ipc-handlers.js')
 const userDataMigration = require('./main/userdata-migration.js')
 
 // Scheme must be registered before the app is ready
@@ -23,7 +23,25 @@ let mainWindow = null
 let tray = null
 let alwaysOnTopInterval = null // Intervalo para alwaysOnTop
 
-
+// Instancia única (single-instance-focus, C1): se adquiere el lock antes de
+// registrar cualquier listener de ciclo de vida (whenReady, before-quit,
+// etc.). Si esta ejecución pierde la carrera, sale con app.exit(0) — no
+// app.quit(): quit() dispara 'before-quit' -> monitorEngine.closeAllRows
+// ('app-quit'), que escribiría sobre el sessions.json de la instancia
+// ganadora (spec: la instancia perdedora no altera el historial).
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  app.exit(0)
+} else {
+  // C2: un segundo arranque enfoca la ventana existente, restaurándola si
+  // estaba minimizada. Acción explícita de quien vuelve a ejecutar la app:
+  // siempre muestra la ventana, sin consultar `startupVisibility` (esa
+  // preferencia gobierna el arranque normal, no este enfoque).
+  app.on('second-instance', () => {
+    if (mainWindow && mainWindow.isMinimized()) mainWindow.restore()
+    showMainWindow()
+  })
+}
 
 function createTray() {
   // Ruta del ícono para la bandeja
@@ -79,6 +97,18 @@ async function createWindow() {
   },
   })
   Menu.setApplicationMenu(null);
+
+  // Visibilidad al arrancar (startup-visibility-preference, D4): la
+  // preferencia gobierna todo arranque —manual o automático con el inicio de
+  // sesión de Windows— sin distinguir el origen, así que acá no se lee
+  // `process.argv`. Con `startupVisibility: 'tray'` no se agenda ningún
+  // `.show()`: la ventana queda creada pero oculta, mostrable después desde
+  // la bandeja o por `showMainWindow()` (segundo arranque, sección C).
+  if (readSettings().startupVisibility !== 'tray') {
+    mainWindow.once('ready-to-show', function () {
+      mainWindow.show()
+    })
+  }
 
   // Registra el contrato IPC del motor de monitoreo y de Opciones (Tarea 15),
   // migra el historial legado (ADR-0007) y carga la selección guardada antes
