@@ -53,21 +53,6 @@
          variable de componente única — así que renombrar o agrupar sobre un
          grupo no altera a los demás. -->
     <div v-for="group in dragGroups" :key="group.groupId" class="group-container">
-      <div class="group-header">
-        <input
-          v-if="editingGroupId === group.groupId"
-          ref="groupNameInput"
-          v-model="draftGroupName"
-          class="group-name-input"
-          @keyup.enter="confirmGroupName(group)"
-          @keyup.esc="cancelGroupName"
-          @blur="cancelGroupName"
-          @click.stop
-        />
-        <span v-else class="group-name" @click="startEditGroupName(group)">
-          {{ group.groupName || 'Grupo sin nombre' }}
-        </span>
-      </div>
       <draggable
         v-model="group.rows"
         class="drag-list"
@@ -77,6 +62,23 @@
         @end="onDragEnd"
         @change="onGroupDragChange($event, group.groupId)"
       >
+        <template #header>
+          <div class="group-header">
+            <input
+              v-if="editingGroupId === group.groupId"
+              ref="groupNameInput"
+              v-model="draftGroupName"
+              class="group-name-input"
+              @keyup.enter="confirmGroupName(group)"
+              @keyup.esc="cancelGroupName"
+              @blur="cancelGroupName"
+              @click.stop
+            />
+            <span v-else class="group-name" @click="startEditGroupName(group)">
+              {{ group.groupName || 'Grupo sin nombre' }}
+            </span>
+          </div>
+        </template>
         <template #item="{ element }">
           <AppRow
             :row="element"
