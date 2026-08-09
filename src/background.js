@@ -23,7 +23,25 @@ let mainWindow = null
 let tray = null
 let alwaysOnTopInterval = null // Intervalo para alwaysOnTop
 
-
+// Instancia única (single-instance-focus, C1): se adquiere el lock antes de
+// registrar cualquier listener de ciclo de vida (whenReady, before-quit,
+// etc.). Si esta ejecución pierde la carrera, sale con app.exit(0) — no
+// app.quit(): quit() dispara 'before-quit' -> monitorEngine.closeAllRows
+// ('app-quit'), que escribiría sobre el sessions.json de la instancia
+// ganadora (spec: la instancia perdedora no altera el historial).
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  app.exit(0)
+} else {
+  // C2: un segundo arranque enfoca la ventana existente, restaurándola si
+  // estaba minimizada. Acción explícita de quien vuelve a ejecutar la app:
+  // siempre muestra la ventana, sin consultar `startupVisibility` (esa
+  // preferencia gobierna el arranque normal, no este enfoque).
+  app.on('second-instance', () => {
+    if (mainWindow && mainWindow.isMinimized()) mainWindow.restore()
+    showMainWindow()
+  })
+}
 
 function createTray() {
   // Ruta del ícono para la bandeja
