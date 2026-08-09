@@ -64,7 +64,7 @@ async function createWindow() {
     width: 500,
     height: 330,
     title: 'Work Tracker',
-    icon: path.join(__static, 'img', 'icon-work.png'),
+    icon: path.join(__static, 'icon-work-256.png'),
     backgroundColor: '#0f0f0f', // Cambia este valor por el color que desees
     frame: false,
     show: false,
