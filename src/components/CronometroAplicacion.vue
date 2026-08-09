@@ -362,11 +362,13 @@ export default {
   width: 100%;
 }
 
-/* La franja de creación siempre modela una lista vacía (`dragNewGroup`):
-   sin alto propio, SortableJS no tendría área sobre la que aceptar el
-   `drop` de la primera fila. */
+/* La etiqueta de invitación vive en el slot #header de este `<draggable>` (D-6),
+   así que el nodo Sortable ya tiene alto propio y el `min-height` deja de crear
+   área desde cero. Lo que preserva ahora es el área de destino por debajo de la
+   etiqueta: el alto de la etiqueta (~31px) más los 40px que el bloque tenía como
+   única superficie de drop antes de que la etiqueta entrara al nodo. */
 .new-group-list {
-  min-height: 40px;
+  min-height: 72px;
 }
 
 .group-container {
