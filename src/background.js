@@ -11,7 +11,7 @@ const fs = require('fs')
 const platformWindows = require('./main/platform-windows.js')
 const monitorEngine = require('./main/monitor-engine.js')
 const sessionLog = require('./main/session-log.js')
-const { registerIpcHandlers } = require('./main/ipc-handlers.js')
+const { registerIpcHandlers, readSettings } = require('./main/ipc-handlers.js')
 const userDataMigration = require('./main/userdata-migration.js')
 
 // Scheme must be registered before the app is ready
@@ -79,6 +79,18 @@ async function createWindow() {
   },
   })
   Menu.setApplicationMenu(null);
+
+  // Visibilidad al arrancar (startup-visibility-preference, D4): la
+  // preferencia gobierna todo arranque —manual o automático con el inicio de
+  // sesión de Windows— sin distinguir el origen, así que acá no se lee
+  // `process.argv`. Con `startupVisibility: 'tray'` no se agenda ningún
+  // `.show()`: la ventana queda creada pero oculta, mostrable después desde
+  // la bandeja o por `showMainWindow()` (segundo arranque, sección C).
+  if (readSettings().startupVisibility !== 'tray') {
+    mainWindow.once('ready-to-show', function () {
+      mainWindow.show()
+    })
+  }
 
   // Registra el contrato IPC del motor de monitoreo y de Opciones (Tarea 15),
   // migra el historial legado (ADR-0007) y carga la selección guardada antes

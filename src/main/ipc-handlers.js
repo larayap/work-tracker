@@ -15,7 +15,19 @@ function getSettingsFilePath() {
   return path.join(app.getPath('userData'), 'settings.json')
 }
 
-const defaultSettings = { masterVolume: 1, interactionVolume: 1, timeFormat: '24h' }
+const defaultSettings = { masterVolume: 1, interactionVolume: 1, timeFormat: '24h', startupVisibility: 'window' }
+
+// Lectura síncrona de settings mergeados con el default (D5, SSOT del
+// default). Se usa tanto desde el handler IPC `get-settings` como desde
+// `createWindow()` en background.js (fuera de cualquier canal IPC, antes de
+// que el renderer exista) para decidir la visibilidad al arrancar — de ahí
+// que viva como función exportada y no solo inline dentro del handler.
+function readSettings() {
+  return {
+    ...defaultSettings,
+    ...jsonStore.readJson(getSettingsFilePath(), {}),
+  }
+}
 
 function registerIpcHandlers(mainWindow) {
   ipcMain.handle('get-monitored-snapshot', () => monitorEngine.getSnapshot())
@@ -58,12 +70,10 @@ function registerIpcHandlers(mainWindow) {
 
   // `readJson(path, fallback)` devuelve `fallback` solo si el archivo falta
   // o está corrupto: un `settings.json` ya existente pero sin `timeFormat`
-  // (agregado en esta preferencia) llegaría con esa clave `undefined` sin el
-  // merge explícito con `defaultSettings`.
-  ipcMain.handle('get-settings', () => ({
-    ...defaultSettings,
-    ...jsonStore.readJson(getSettingsFilePath(), {}),
-  }))
+  // ni `startupVisibility` (agregadas en preferencias posteriores) llegaría
+  // con esas claves `undefined` sin el merge explícito con `defaultSettings`
+  // que hace `readSettings()`.
+  ipcMain.handle('get-settings', () => readSettings())
 
   ipcMain.on('save-settings', (event, settings) => {
     jsonStore.writeJson(getSettingsFilePath(), settings)
@@ -77,4 +87,4 @@ function registerIpcHandlers(mainWindow) {
   })
 }
 
-module.exports = { registerIpcHandlers }
+module.exports = { registerIpcHandlers, readSettings }

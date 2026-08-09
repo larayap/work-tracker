@@ -38,6 +38,21 @@
           <option value="12h">12 horas</option>
         </select>
       </div>
+      <div class="setting-control">
+        <label for="startup-visibility">Al arrancar</label>
+        <select
+          id="startup-visibility"
+          :value="settingsStore.startupVisibility"
+          @change="settingsStore.setStartupVisibility($event.target.value)"
+        >
+          <option value="window">Mostrar la ventana</option>
+          <option value="tray">Solo en la bandeja</option>
+        </select>
+        <small>
+          Aplica a todo arranque de la aplicación, incluido el arranque
+          automático con el inicio de sesión de Windows.
+        </small>
+      </div>
       <button class="close-btn" @click="$emit('close')">Cerrar</button>
     </div>
   </div>
@@ -94,6 +109,10 @@ export default {
 .volume-control label,
 .setting-control label {
   font-size: 0.9rem;
+}
+.setting-control small {
+  font-size: 0.75rem;
+  color: #bbb;
 }
 .volume-control input[type='range'],
 .setting-control input[type='range'] {
