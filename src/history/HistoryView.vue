@@ -279,6 +279,28 @@ html, body {
   opacity: 1 !important;
 }
 
+/* Extremos del rango mientras se elige la segunda fecha (`dragAttribute` de v-calendar
+   usa fillMode `outline`): el arte por defecto es un círculo BLANCO con borde y número
+   azules. Sin `.vc-blue` en el selector de la capa de fondo: esa clase va en el wrapper
+   `.vc-attr`, no en el `.vc-highlight` (ver design § 0.3). */
+.dark-calendar .vc-highlight.vc-highlight-bg-outline {
+  background-color: transparent !important;
+  border-color: var(--range-edge) !important;
+}
+.dark-calendar .vc-day-content.vc-highlight-content-outline.vc-blue {
+  color: var(--range-day-text) !important;
+}
+
+/* Días intermedios del rango (fillMode `light`). Un mismo par de reglas cubre las tres
+   geometrías `vc-highlight-base-start|middle|end`, porque las tres comparten
+   `vc-highlight-bg-light`. */
+.dark-calendar .vc-highlight.vc-highlight-bg-light {
+  background-color: var(--range-fill) !important;
+}
+.dark-calendar .vc-day-content.vc-highlight-content-light.vc-blue {
+  color: var(--range-day-text) !important;
+}
+
 .vc-focus {
   border: 1px solid #3a3a3a;
   border-radius: 0 !important;
