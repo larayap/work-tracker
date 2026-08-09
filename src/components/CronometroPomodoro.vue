@@ -306,10 +306,6 @@ export default {
   transform: scale(1.2);
 }
 
-.controls button:focus {
-  outline: none;
-}
-
 .timer h3 {
   font-size: 1.4em;
   font-weight: 700;
@@ -327,7 +323,6 @@ export default {
   font-size: 1.2em;
   font-weight: bold;
   border: none;
-  outline: none;
   font-family: "Architects Daughter", cursive;
 }
 

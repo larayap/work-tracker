@@ -285,7 +285,7 @@ html, body {
 }
 
 .vc-focus:focus {
-  box-shadow: 0 0 0 2px #3a3a3a !important;
+  box-shadow: 0 0 0 2px var(--focus-ring) !important;
 }
 
 .view-tabs,

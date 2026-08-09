@@ -233,9 +233,6 @@ export default {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
-
-  /* Quita cualquier outline por foco */
-  outline: none;
 }
 .option-card:hover {
   border-color: #999;
@@ -268,7 +265,14 @@ export default {
   width: 300px;
   max-height: 80%;
   overflow-y: auto;
-  outline: none;
+}
+/* Única excepción a la regla global de `tokens.css`: este diálogo se enfoca por script al
+   abrirse y se navega con flechas, así que el anillo va sobre `:focus` — `:focus-visible`
+   no matchea un foco programático cuando la interacción previa fue con mouse.
+   `outline-offset` negativo para que el anillo quede dentro del panel. */
+.modal-content:focus {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
 }
 .modal-content h3 {
   margin-top: 0;

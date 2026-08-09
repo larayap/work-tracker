@@ -90,7 +90,6 @@
     width: 300px;
     max-height: 80%;
     overflow-y: auto;
-    outline: none;
   }
   .modal-content h3 {
     margin-top: 0;
