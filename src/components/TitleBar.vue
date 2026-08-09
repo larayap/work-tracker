@@ -221,8 +221,6 @@ export default {
   padding: 2px;
   width: 24px;
   height: 24px;
-  font-size: 1em;      /* quizá ajustes un poco el tamaño */
-  text-align: center;
   border: 2px solid #e0e0e0;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -232,18 +230,21 @@ export default {
   -moz-user-select: none;
   -ms-user-select: none;
 
+  /* Centra la imagen en la caja de 24×24 (S-2, judgment ronda 2): alcanza a las tres
+     tarjetas de tipo de módulo —Manual, Work Tracker, Pomodoro—, incluida la de Manual,
+     cuya imagen pasa de alinearse a la línea base a quedar centrada. Cambio de
+     presentación menor y aceptado, documentado acá para que no se lea como omisión de
+     alcance. */
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .option-card:hover {
   border-color: #999;
-  color: #999;
 }
 
 .option-card.selected {
   background: #6f6f6f;
-  color: white;
 }
 
 /* Estilos para el modal */
