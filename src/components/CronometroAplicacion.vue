@@ -95,7 +95,6 @@
          cualquier arrastre, para no desmontarse bajo el cursor si el gesto
          vacía el listado suelto. -->
     <div v-if="dragUngrouped.length >= 1 || isDragging" class="group-container">
-      <div class="group-strip">Arrastrá aquí para agrupar</div>
       <draggable
         v-model="dragNewGroup"
         class="drag-list new-group-list"
@@ -103,6 +102,9 @@
         item-key="appId"
         @change="onNewGroupDragChange"
       >
+        <template #header>
+          <div class="group-strip">Arrastrá aquí para agrupar</div>
+        </template>
         <template #item="{ element }">
           <AppRow
             :row="element"
