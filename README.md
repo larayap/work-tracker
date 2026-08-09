@@ -40,6 +40,30 @@ Una vez que compruebes que tu historial está completo, **desinstalá la versió
 seguís abriendo las dos, cada una registra su propio historial por separado y el traspaso ya no
 vuelve a ocurrir: terminarías con tu tiempo repartido entre dos aplicaciones.
 
+## Firma de código
+
+Los instaladores todavía no están firmados: al descargarlos, Windows muestra una advertencia de
+SmartScreen, y al ejecutarlos aparece como «editor desconocido». No es una señal de que el
+archivo esté alterado, sino de que no hay un certificado de firma detrás — y un certificado
+comercial no es viable para un proyecto gratuito y sin ingresos.
+
+Work Tracker postuló al programa de firma gratuita para proyectos open source de
+[SignPath Foundation](https://signpath.org/), con la solicitud en revisión. Una vez aprobada,
+cada instalador publicado en Releases se firmará automáticamente durante el build, con un
+certificado provisto por la fundación: el editor que mostrará Windows será «SignPath
+Foundation», que es a nombre de quien se emiten los certificados del programa.
+
+## Privacidad
+
+Work Tracker no tiene servidor, ni cuenta de usuario, ni telemetría. Todo lo que registra —el
+tiempo por aplicación, el historial, las preferencias y la lista de programas monitoreados— se
+guarda solo en tu equipo, en el directorio de datos que Windows le asigna a la aplicación bajo
+`%APPDATA%`. Nada de eso se envía a ningún servidor ni se comparte con terceros.
+
+Para medir el tiempo de uso, la aplicación consulta cuál es la ventana en foco y enumera las
+aplicaciones instaladas (para que puedas elegir cuáles monitorear, con su nombre e ícono). Esa
+información se usa exclusivamente para lo anterior y no sale de tu equipo.
+
 ## Compilar desde el código fuente
 
 Requiere la versión de Node declarada en [`.nvmrc`](.nvmrc) (Node 16.20.2 — el bundle del
