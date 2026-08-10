@@ -1,7 +1,7 @@
 <template>
   <div class="pomodoro-dynamic">
     <h1 class="title-pomodoro">
-      <img src="@/assets/pomodoro_worktracker.webp" alt="" class="module-icon" />
+      <img src="@/assets/icon-pomodoro.svg" alt="" class="module-icon" />
       Pomodoro
     </h1>
     <!-- Sesiones: arrastrables -->

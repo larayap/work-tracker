@@ -5,7 +5,7 @@
         <font-awesome-icon icon="bars" />
       </button>
       <h1 class="module-title">
-        <img src="@/assets/work_worktracker.webp" alt="" class="module-icon" />
+        <img src="@/assets/icon-work.svg" alt="" class="module-icon" />
         Work Tracker
       </h1>
       <button

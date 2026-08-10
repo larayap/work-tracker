@@ -1,0 +1,15 @@
+<!-- Icono del módulo Pomodoro — tomate dibujado a medida.
+     Tabler Icons no incluye un tomate, así que este conserva la identidad Pomodoro del
+     artwork original (`pomodoro_worktracker.webp`) trazándola en la misma grilla 24×24 y con
+     el mismo peso de 2 px que `icon-manual.svg` e `icon-work.svg`, para que las tres tarjetas
+     de módulo lean como un solo set.
+     Cuerpo: elipse achatada centrada en (12, 14). Encima, tallo y dos hojas simétricas.
+     El trazo va fijo en blanco porque el icono se consume vía <img>, que no hereda
+     `currentColor` del CSS del componente. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+     fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M4.5 14a7.5 6.5 0 1 0 15 0a7.5 6.5 0 1 0 -15 0" />
+  <path d="M12 7.5v-2.5" />
+  <path d="M12 7.5c-1.4 -1.7 -3.3 -2.4 -5.4 -2.1c.4 2 1.9 3.3 4 3.5" />
+  <path d="M12 7.5c1.4 -1.7 3.3 -2.4 5.4 -2.1c-.4 2 -1.9 3.3 -4 3.5" />
+</svg>

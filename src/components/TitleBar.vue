@@ -7,21 +7,21 @@
         :class="{ selected: appStore.manual }"
         @click="toggleManual"
       >
-        <img src="@/assets/manual.png" alt="Manual" class="option-icon" />
+        <img src="@/assets/icon-manual.svg" alt="Manual" class="option-icon" />
       </div>
       <div
         class="option-card"
         :class="{ selected: appStore.aplicacion }"
         @click="toggleAplicacion"
       >
-        <img src="@/assets/work_worktracker.webp" alt="Work Tracker" class="option-icon" />
+        <img src="@/assets/icon-work.svg" alt="Work Tracker" class="option-icon" />
       </div>
       <div
         class="option-card"
         :class="{ selected: appStore.pomodoro }"
         @click="togglePomodoro"
       >
-        <img src="@/assets/pomodoro_worktracker.webp" alt="Pomodoro" class="option-icon" />
+        <img src="@/assets/icon-pomodoro.svg" alt="Pomodoro" class="option-icon" />
       </div>
     </div>
     <div class="window-controls">
