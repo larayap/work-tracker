@@ -3,13 +3,23 @@
      artwork original (`pomodoro_worktracker.webp`) trazándola en la misma grilla 24×24 y con
      el mismo peso de 2 px que `icon-manual.svg` e `icon-work.svg`, para que las tres tarjetas
      de módulo lean como un solo set.
-     Cuerpo: elipse achatada centrada en (12, 14). Encima, tallo y dos hojas simétricas.
+     Cuerpo: elipse achatada centrada en (12, 15.2), corrida hacia abajo respecto del centro
+     del lienzo para abrir aire arriba. Ahí van el tallo, que apoya en el borde superior del
+     cuerpo, y dos hojas simétricas que quedan por encima sin cruzarlo: superpuestas al
+     cuerpo, a 24 px sus trazos se funden con el contorno y el remate deja de leerse.
+     Dentro, dos manecillas de reloj, que es lo que declara «temporizador» y no solo
+     «tomate». La escala graduada del dial del temporizador de cocina se probó y se
+     descartó: a 24 px la banda horizontal y sus marcas se funden entre sí y con las
+     hojas, y el conjunto lee como una boca con dientes. Las manecillas funcionan porque
+     rompen la simetría horizontal — es el mismo recurso que usa `alarm` de Tabler.
      El trazo va fijo en blanco porque el icono se consume vía <img>, que no hereda
      `currentColor` del CSS del componente. -->
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
      fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M4.5 14a7.5 6.5 0 1 0 15 0a7.5 6.5 0 1 0 -15 0" />
-  <path d="M12 7.5v-2.5" />
-  <path d="M12 7.5c-1.4 -1.7 -3.3 -2.4 -5.4 -2.1c.4 2 1.9 3.3 4 3.5" />
-  <path d="M12 7.5c1.4 -1.7 3.3 -2.4 5.4 -2.1c-.4 2 -1.9 3.3 -4 3.5" />
+  <path d="M5 15.2a7 5.9 0 1 0 14 0a7 5.9 0 1 0 -14 0" />
+  <path d="M12 9.1v-3.2" />
+  <path d="M12 6.1c-1.2 -1.4 -2.9 -1.9 -4.7 -1.6c.3 1.7 1.6 2.7 3.4 2.9" />
+  <path d="M12 6.1c1.2 -1.4 2.9 -1.9 4.7 -1.6c-.3 1.7 -1.6 2.7 -3.4 2.9" />
+  <path d="M12 15.6v-3.1" />
+  <path d="M12 15.6h3" />
 </svg>
