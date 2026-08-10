@@ -1,6 +1,9 @@
 <template>
   <div class="pomodoro-dynamic">
-    <h1 class="title-pomodoro">Pomodoro</h1>
+    <h1 class="title-pomodoro">
+      <img src="@/assets/pomodoro_worktracker.webp" alt="" class="module-icon" />
+      Pomodoro
+    </h1>
     <!-- Sesiones: arrastrables -->
     <div class="session-list" ref="sessionList">
       <draggable 
@@ -243,6 +246,15 @@ export default {
 .title-pomodoro {
   font-size: 2rem;
   margin: 0 10px 10px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+.module-icon {
+  height: 20px;
+  max-width: 20px;
+  object-fit: contain;
 }
 
 .session-list {
@@ -293,6 +305,20 @@ export default {
   padding: 0;
 }
 
+/* I-2 (judgment ronda 2, keyboard-focus-indicator-per-palette): el anillo global
+   (--focus-ring: #e0e0e0) se dibuja fuera del control, sobre el fondo de `.session-item`.
+   `getFillStyle()` pinta ese fondo con #d3d3d3 en una sesión completada (y con un split
+   sólido que llega a #d3d3d3 en la sesión en curso) — contraste 1.13:1, imperceptible.
+   #6f6f6f da 3.36:1 sobre #d3d3d3 y 4.18:1 sobre el negro por defecto de una sesión
+   pendiente (ambos ≥ 3:1, WCAG 2.2 SC 1.4.11 — ver design.md § D-2.3), así que el
+   indicador se distingue en los tres estados, no solo en el que tenía la regla global.
+   Acotado a estos dos controles: no toca `--focus-ring` ni ningún otro consumidor del
+   token compartido. */
+.edit-input:focus-visible,
+.remove-btn:focus-visible {
+  outline-color: #6f6f6f;
+}
+
 .controls {
   margin-bottom: 15px;
 }
@@ -304,10 +330,6 @@ export default {
 
 .controls button:hover {
   transform: scale(1.2);
-}
-
-.controls button:focus {
-  outline: none;
 }
 
 .timer h3 {
@@ -327,7 +349,6 @@ export default {
   font-size: 1.2em;
   font-weight: bold;
   border: none;
-  outline: none;
   font-family: "Architects Daughter", cursive;
 }
 

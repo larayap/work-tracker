@@ -103,9 +103,5 @@
       transform: scale(1.2);
     }
 
-    .controls button:focus {
-      outline: none;
-    }
-
   </style>
   

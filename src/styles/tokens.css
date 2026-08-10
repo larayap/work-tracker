@@ -1,0 +1,26 @@
+/* src/styles/tokens.css
+   Única fuente de los colores que introduce `ui-branding-polish`. CSS puro a propósito:
+   la ventana de historial es otro bundle y no monta Pinia (ADR-0012), así que un store o
+   un módulo con dependencias no llega hasta ahí. Ver ADR-0015.
+   Los hex ya hardcodeados en los componentes NO se migran acá. */
+:root {
+  /* Indicador de foco por teclado (ítem 2). 14.5:1 sobre el fondo de la ventana de
+     trabajo (#0f0f0f), 13.1:1 sobre el de historial (#1b1b1b), 7.4:1 sobre el fondo de
+     modal (#444) y 3.8:1 incluso sobre el relleno de una pestaña activa (#6f6f6f). */
+  --focus-ring: #e0e0e0;
+
+  /* Resaltado del rango del calendario del historial (ítem 3). */
+  --range-edge: #a4a5a5;      /* borde de los extremos mientras se elige la 2ª fecha */
+  --range-fill: #666666;      /* relleno de los días intermedios: 3.0:1 sobre #1b1b1b */
+  --range-day-text: #f0f0f0;  /* número del día: 5.0:1 sobre #666, 15.1:1 sobre #1b1b1b */
+}
+
+/* Anillo de foco por teclado — regla única para las dos ventanas.
+   `:focus-visible` y no `:focus`: el anillo aparece al navegar con teclado, no al hacer
+   clic con el mouse. Excepción por definición del selector: los campos de texto matchean
+   `:focus-visible` también con mouse, porque el navegador asume que todo campo de texto
+   necesita indicador (ver design § D-1.3). */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}

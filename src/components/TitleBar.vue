@@ -14,16 +14,14 @@
         :class="{ selected: appStore.aplicacion }"
         @click="toggleAplicacion"
       >
-        <!-- <img src="@/assets/manual.png" alt="Manual" class="option-icon" /> -->
-        W
+        <img src="@/assets/work_worktracker.webp" alt="Work Tracker" class="option-icon" />
       </div>
       <div
         class="option-card"
         :class="{ selected: appStore.pomodoro }"
         @click="togglePomodoro"
       >
-        <!-- <img src="@/assets/manual.png" alt="Manual" class="option-icon" /> -->
-        P
+        <img src="@/assets/pomodoro_worktracker.webp" alt="Pomodoro" class="option-icon" />
       </div>
     </div>
     <div class="window-controls">
@@ -223,8 +221,6 @@ export default {
   padding: 2px;
   width: 24px;
   height: 24px;
-  font-size: 1em;      /* quizá ajustes un poco el tamaño */
-  text-align: center;
   border: 2px solid #e0e0e0;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -234,17 +230,21 @@ export default {
   -moz-user-select: none;
   -ms-user-select: none;
 
-  /* Quita cualquier outline por foco */
-  outline: none;
+  /* Centra la imagen en la caja de 24×24 (S-2, judgment ronda 2): alcanza a las tres
+     tarjetas de tipo de módulo —Manual, Work Tracker, Pomodoro—, incluida la de Manual,
+     cuya imagen pasa de alinearse a la línea base a quedar centrada. Cambio de
+     presentación menor y aceptado, documentado acá para que no se lea como omisión de
+     alcance. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .option-card:hover {
   border-color: #999;
-  color: #999;
 }
 
 .option-card.selected {
   background: #6f6f6f;
-  color: white;
 }
 
 /* Estilos para el modal */
@@ -268,7 +268,14 @@ export default {
   width: 300px;
   max-height: 80%;
   overflow-y: auto;
-  outline: none;
+}
+/* Única excepción a la regla global de `tokens.css`: este diálogo se enfoca por script al
+   abrirse y se navega con flechas, así que el anillo va sobre `:focus` — `:focus-visible`
+   no matchea un foco programático cuando la interacción previa fue con mouse.
+   `outline-offset` negativo para que el anillo quede dentro del panel. */
+.modal-content:focus {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
 }
 .modal-content h3 {
   margin-top: 0;

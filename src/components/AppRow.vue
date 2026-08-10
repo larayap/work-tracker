@@ -210,8 +210,4 @@ export default {
 .stop-button:hover {
   transform: scale(1.2);
 }
-
-.stop-button:focus {
-  outline: none;
-}
 </style>

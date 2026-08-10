@@ -4,7 +4,10 @@
       <button class="button-history" @click="openHistoryWindow()" title="Ver historial">
         <font-awesome-icon icon="bars" />
       </button>
-      <h1 style="margin: 0;">Work</h1>
+      <h1 class="module-title">
+        <img src="@/assets/work_worktracker.webp" alt="" class="module-icon" />
+        Work Tracker
+      </h1>
       <button
         class="button-add"
         @click="showSelector = true"
@@ -50,21 +53,6 @@
          variable de componente única — así que renombrar o agrupar sobre un
          grupo no altera a los demás. -->
     <div v-for="group in dragGroups" :key="group.groupId" class="group-container">
-      <div class="group-header">
-        <input
-          v-if="editingGroupId === group.groupId"
-          ref="groupNameInput"
-          v-model="draftGroupName"
-          class="group-name-input"
-          @keyup.enter="confirmGroupName(group)"
-          @keyup.esc="cancelGroupName"
-          @blur="cancelGroupName"
-          @click.stop
-        />
-        <span v-else class="group-name" @click="startEditGroupName(group)">
-          {{ group.groupName || 'Grupo sin nombre' }}
-        </span>
-      </div>
       <draggable
         v-model="group.rows"
         class="drag-list"
@@ -74,6 +62,23 @@
         @end="onDragEnd"
         @change="onGroupDragChange($event, group.groupId)"
       >
+        <template #header>
+          <div class="group-header">
+            <input
+              v-if="editingGroupId === group.groupId"
+              ref="groupNameInput"
+              v-model="draftGroupName"
+              class="group-name-input"
+              @keyup.enter="confirmGroupName(group)"
+              @keyup.esc="cancelGroupName"
+              @blur="cancelGroupName"
+              @click.stop
+            />
+            <span v-else class="group-name" @click="startEditGroupName(group)">
+              {{ group.groupName || 'Grupo sin nombre' }}
+            </span>
+          </div>
+        </template>
         <template #item="{ element }">
           <AppRow
             :row="element"
@@ -92,7 +97,6 @@
          cualquier arrastre, para no desmontarse bajo el cursor si el gesto
          vacía el listado suelto. -->
     <div v-if="dragUngrouped.length >= 1 || isDragging" class="group-container">
-      <div class="group-strip">Arrastrá aquí para agrupar</div>
       <draggable
         v-model="dragNewGroup"
         class="drag-list new-group-list"
@@ -100,6 +104,9 @@
         item-key="appId"
         @change="onNewGroupDragChange"
       >
+        <template #header>
+          <div class="group-strip">Arrastrá aquí para agrupar</div>
+        </template>
         <template #item="{ element }">
           <AppRow
             :row="element"
@@ -283,6 +290,17 @@ export default {
   width: 100%;
   justify-content: center;
 }
+.module-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.module-icon {
+  height: 20px;
+  max-width: 20px;
+  object-fit: contain;
+}
 .display {
   display: inline;
   font-size: 2rem;
@@ -344,11 +362,13 @@ export default {
   width: 100%;
 }
 
-/* La franja de creación siempre modela una lista vacía (`dragNewGroup`):
-   sin alto propio, SortableJS no tendría área sobre la que aceptar el
-   `drop` de la primera fila. */
+/* La etiqueta de invitación vive en el slot #header de este `<draggable>` (D-6),
+   así que el nodo Sortable ya tiene alto propio y el `min-height` deja de crear
+   área desde cero. Lo que preserva ahora es el área de destino por debajo de la
+   etiqueta: el alto de la etiqueta (~31px) más los 40px que el bloque tenía como
+   única superficie de drop antes de que la etiqueta entrara al nodo. */
 .new-group-list {
-  min-height: 40px;
+  min-height: 72px;
 }
 
 .group-container {
