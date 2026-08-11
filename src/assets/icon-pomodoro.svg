@@ -11,15 +11,18 @@
      contraste posible y siguen leyéndose sobre cualquier fondo, incluido el #6f6f6f de la
      tarjeta activa. Pintarlos del color del fondo, en cambio, los rompería justo ahí.
 
-     Geometría: cuerpo centrado en (12, 15.5), corrido hacia abajo para abrir aire arriba.
-     La banda cruza el cuerpo de lado a lado y las tres marcas suben desde su borde inferior.
+     Geometría: cuerpo centrado en (12, 14.9), con radios 6.7 × 5.5 que dejan margen contra
+     el borde del lienzo — el mismo aire que se reservan los dos iconos de trazo, para que las
+     tres tarjetas pesen igual. La banda cruza el cuerpo de lado a lado y de su borde inferior
+     suben tres marcas: la central, más alta y más ancha, hace de indicador del dial y es la
+     que sostiene la lectura de «temporizador» cuando las laterales se empiezan a perder.
      Encima, dos hojas macizas y el tallo curvo, que apoyan en el borde superior sin cruzarlo.
 
      El relleno va fijo en blanco porque el icono se consume vía <img>, que no hereda
      `currentColor` del CSS del componente. -->
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-  <path fill="#ffffff" fill-rule="evenodd" d="M12 9.6a7.2 5.9 0 1 0 0 11.8a7.2 5.9 0 1 0 0 -11.8Z M4.4 14.4h15.2v2.5h-15.2Z M7.8 15.3h1.9v1.6h-1.9Z M11.1 15.3h1.9v1.6h-1.9Z M14.4 15.3h1.9v1.6h-1.9Z" />
-  <path fill="#ffffff" d="M11.2 9.2c-.5 -2 -2.4 -3.4 -4.8 -3.3c.2 2 1.7 3.4 3.9 3.6Z" />
-  <path fill="#ffffff" d="M12.8 9.2c.5 -2 2.4 -3.4 4.8 -3.3c-.2 2 -1.7 3.4 -3.9 3.6Z" />
-  <path fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" d="M12 9.1c-.3 -1.8 .3 -3 1.6 -3.9" />
+  <path fill="#ffffff" fill-rule="evenodd" d="M12 9.4a6.7 5.5 0 1 0 0 11a6.7 5.5 0 1 0 0 -11Z M4.9 13.7h14.2v2.4h-14.2Z M7.6 14.9h1.6v1.2h-1.6Z M10.9 14.1h2.2v2h-2.2Z M14.8 14.9h1.6v1.2h-1.6Z" />
+  <path fill="#ffffff" d="M11.3 9.1c-.45 -1.85 -2.2 -3.15 -4.4 -3.05c.18 1.85 1.55 3.15 3.6 3.35Z" />
+  <path fill="#ffffff" d="M12.7 9.1c.45 -1.85 2.2 -3.15 4.4 -3.05c-.18 1.85 -1.55 3.15 -3.6 3.35Z" />
+  <path fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" d="M12 9c-.3 -1.7 .3 -2.8 1.5 -3.6" />
 </svg>
