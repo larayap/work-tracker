@@ -1,30 +1,35 @@
 <!-- Icono del módulo Pomodoro — tomate temporizador dibujado a medida.
      Tabler Icons no incluye un tomate, así que este conserva la identidad Pomodoro del
      artwork original (`pomodoro_worktracker.webp`), incluida la escala graduada del dial,
-     retrazada en la misma grilla 24×24 que `icon-manual.svg` e `icon-work.svg`.
+     retrazada en la misma grilla 24×24 y con el mismo trazo de 2 px que `icon-manual.svg`
+     e `icon-work.svg`. Cuerpo y hojas van de contorno como esos dos, y el cuerpo ocupa el
+     mismo ancho útil que el maletín, para que las tres tarjetas de módulo pesen igual.
 
-     A diferencia de esos dos, este va relleno y no de trazo, y es la única forma en que la
-     escala sobrevive a 24 px: dibujada con líneas, la banda horizontal y sus marcas se
-     funden entre sí y con el contorno, y el conjunto lee como una boca con dientes. Acá la
-     banda y las marcas son huecos reales del relleno —un único path con `fill-rule="evenodd"`,
-     donde los subpaths anidados alternan hueco y macizo—, así que se recortan con el máximo
-     contraste posible y siguen leyéndose sobre cualquier fondo, incluido el #6f6f6f de la
-     tarjeta activa. Pintarlos del color del fondo, en cambio, los rompería justo ahí.
+     La banda del dial es la excepción: va rellena, y sus marcas son huecos recortados en
+     ella mediante `fill-rule="evenodd"`. Dibujada de contorno como el resto —probado— a
+     24 px no sobrevive: la línea de la banda, las marcas y el contorno del cuerpo se funden
+     entre sí y el interior queda como una mancha con puntos. Rellena, en cambio, la escala
+     se recorta con el máximo contraste posible sobre el interior vacío del tomate.
 
-     Geometría: cuerpo centrado en (12, 14.9), con radios 6.7 × 5.5 que dejan margen contra
-     el borde del lienzo — el mismo aire que se reservan los dos iconos de trazo, para que las
-     tres tarjetas pesen igual. La ranura del dial queda contenida dentro del cuerpo y no lo
-     cruza de lado a lado: al llegar al contorno lo parte en dos, y en los extremos quedan dos
-     puntas sueltas que el ojo lee como astillas, no como un tomate. De su borde inferior
-     suben tres marcas: la central, más alta y más ancha, hace de indicador del dial y es la
-     que sostiene la lectura de «temporizador» cuando las laterales se empiezan a perder.
-     Encima, dos hojas macizas y el tallo curvo, que apoyan en el borde superior sin cruzarlo.
+     Los huecos son transparentes de verdad, no pintados del color de la ventana: así la
+     escala se sigue leyendo sobre el #6f6f6f de la tarjeta activa, donde un hueco pintado
+     de #0f0f0f se delataría.
 
-     El relleno va fijo en blanco porque el icono se consume vía <img>, que no hereda
-     `currentColor` del CSS del componente. -->
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-  <path fill="#ffffff" fill-rule="evenodd" d="M12 9.4a6.7 5.5 0 1 0 0 11a6.7 5.5 0 1 0 0 -11Z M7 13.7h10v2.4h-10Z M8.2 14.9h1.5v1.2h-1.5Z M11.1 14.1h1.8v2h-1.8Z M14.3 14.9h1.5v1.2h-1.5Z" />
-  <path fill="#ffffff" d="M11.3 9.1c-.45 -1.85 -2.2 -3.15 -4.4 -3.05c.18 1.85 1.55 3.15 3.6 3.35Z" />
-  <path fill="#ffffff" d="M12.7 9.1c.45 -1.85 2.2 -3.15 4.4 -3.05c-.18 1.85 -1.55 3.15 -3.6 3.35Z" />
-  <path fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" d="M12 9c-.3 -1.7 .3 -2.8 1.5 -3.6" />
+     La banda queda contenida dentro del cuerpo y no lo cruza de lado a lado: al llegar al
+     contorno lo parte, y en los extremos quedan dos puntas sueltas que el ojo lee como
+     astillas. Su marca central sube por encima del resto de la banda y hace de indicador
+     del dial — es la que sostiene la lectura de «temporizador» cuando las laterales se
+     empiezan a perder, a los 20 px de las cabeceras de módulo. Va trazada como un único
+     contorno continuo con ese escalón, en vez de tres rectángulos contiguos, para que no
+     aparezcan costuras entre ellos.
+
+     El trazo y el relleno van fijos en blanco porque el icono se consume vía <img>, que no
+     hereda `currentColor` del CSS del componente. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+     fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M4 15a8 6 0 1 0 16 0a8 6 0 1 0 -16 0" />
+  <path d="M12 9v-3.2" />
+  <path d="M12 6.4c-1.5 -1.8 -3.6 -2.5 -5.9 -2.2c.4 2.1 1.9 3.4 4.2 3.6" />
+  <path d="M12 6.4c1.5 -1.8 3.6 -2.5 5.9 -2.2c-.4 2.1 -1.9 3.4 -4.2 3.6" />
+  <path fill="#ffffff" stroke="none" fill-rule="evenodd" d="M6.9 13.5H11V12.5H13V13.5H17.1V16.9H6.9Z M9.2 13.5h1.4v1.9h-1.4Z M13.4 13.5h1.4v1.9h-1.4Z" />
 </svg>
