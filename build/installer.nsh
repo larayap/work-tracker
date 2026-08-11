@@ -13,8 +13,19 @@
 ; un macro) a este nivel del archivo rompería el build por referenciar
 ; símbolos que todavía no existen.
 
-Var /GLOBAL AutostartCheckbox_State
-Var /GLOBAL AutostartCheckbox_Handle
+; makensis compila este archivo dos veces: una para el instalador y otra para el
+; desinstalador, esta última con BUILD_UNINSTALLER definido. En ese segundo pase
+; `installer.nsi` incluye solo `uninstaller.nsh`, así que de los tres macros de abajo
+; únicamente se inserta customUnInstall — el único que no toca estas dos variables.
+; Declaradas incondicionalmente quedan ahí sin que nadie las referencie, makensis emite
+; `warning 6001: Variable "..." not referenced or never set`, y como electron-builder
+; compila con warnings-as-errors, el build del instalador falla entero.
+; El guard es el mismo patrón que electron-builder usa para sus propias `Var appExe` y
+; `Var launchLink` en installer.nsi.
+!ifndef BUILD_UNINSTALLER
+  Var /GLOBAL AutostartCheckbox_State
+  Var /GLOBAL AutostartCheckbox_Handle
+!endif
 
 ; ---------------------------------------------------------------------------
 ; A1 — Página con la casilla de autoarranque, insertada después de elegir la
