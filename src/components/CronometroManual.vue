@@ -1,6 +1,9 @@
 <template>
     <div class="cronometro">
-      <h1 style="margin: 0;">Manual</h1>
+      <h1 class="module-title">
+        <img src="@/assets/icon-manual.svg" alt="" class="module-icon" />
+        Manual
+      </h1>
       <div class="display">{{ formattedTime }}</div>
       <div class="controls">
         <button @click="toggle">
@@ -83,6 +86,21 @@
   .cronometro {
     text-align: center;
     margin: 0;
+  }
+  /* Mismo encabezado que Work Tracker y Pomodoro: icono y nombre en una fila.
+     `justify-content` centra el par dentro del módulo, porque acá el encabezado no
+     comparte fila con botones que lo empujen a un costado. */
+  .module-title {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+  .module-icon {
+    height: 20px;
+    max-width: 20px;
+    object-fit: contain;
   }
   .display {
     font-size: 2rem;
