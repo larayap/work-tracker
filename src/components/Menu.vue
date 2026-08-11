@@ -11,6 +11,7 @@
           :class="{ selected: appStore.selected.includes(opt.value) }"
           @click="toggleOption(opt.value)"
         >
+          <img :src="opt.icon" alt="" class="option-icon" />
           <span class="option-label">{{ opt.label }}</span>
         </div>
       </div>
@@ -49,6 +50,9 @@ import { useAppStore  }  from '@/stores/menu'
 import CronometroManual from './CronometroManual.vue';
 import CronometroAplicacion from './CronometroAplicacion.vue';
 import CronometroPomodoro from './CronometroPomodoro.vue';
+import iconManual from '@/assets/icon-manual.svg';
+import iconWork from '@/assets/icon-work.svg';
+import iconPomodoro from '@/assets/icon-pomodoro.svg';
 
 library.add(faCircleCheck)
 
@@ -67,10 +71,13 @@ export default {
     return {
       applied: [],   // Almacena la selección aplicada al pulsar "Aplicar"
       showMenu: true,
-       options: [
-        { value: 1, label: 'M' },
-        { value: 2, label: 'A' },
-        { value: 3, label: 'P' },
+      // El rótulo de cada tarjeta es el mismo nombre que encabeza el módulo una vez
+      // aplicado —`Manual`, `Work Tracker`, `Pomodoro`—, y el icono es el mismo que
+      // usan la barra de título y esa cabecera: la tarjeta anticipa lo que se abre.
+      options: [
+        { value: 1, label: 'Manual', icon: iconManual },
+        { value: 2, label: 'Work Tracker', icon: iconWork },
+        { value: 3, label: 'Pomodoro', icon: iconPomodoro },
       ],
       appStore: useAppStore(),
       lastAppliedSize: { ancho: 0, alto: 0 }, // guarda antibucle del ResizeObserver (D13)
@@ -175,7 +182,11 @@ export default {
 
 <style scoped>
 .menu-container {
-  max-width: 280px;
+  /* 320px y no 280px: las tarjetas pasaron de una letra suelta al nombre completo del
+     módulo, y `Work Tracker` necesita ese ancho extra para partirse en dos líneas
+     legibles en vez de tres. La ventana acompaña sola — `resizeWindow()` mide
+     `scrollWidth`. */
+  max-width: 320px;
   margin: auto;
   padding: 1rem;
 
@@ -192,12 +203,29 @@ export default {
 
 .option-card {
   flex: 1;
-  padding: 0.75rem 0;
-  font-size: 2em;
+  padding: 0.6rem 0.35rem;
   text-align: center;
   border: 2px solid #e0e0e0;
   cursor: pointer;
   transition: all 0.2s ease;
+
+  /* Icono sobre rótulo. Las tres tarjetas quedan del mismo alto aunque `Work Tracker`
+     ocupe dos líneas: el `stretch` por defecto del contenedor flex las iguala. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.option-icon {
+  width: 28px;
+  height: 28px;
+  flex: none;
+}
+
+.option-label {
+  font-size: 0.8rem;
+  line-height: 1.15;
 }
 
 .option-card:hover {
